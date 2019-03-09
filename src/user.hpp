@@ -1,6 +1,8 @@
 
 #include <string>
+#include <vector>
 #include "medication.hpp"
+
 using namespace std;
 
 typedef int fingerIdType;
@@ -8,14 +10,16 @@ typedef int fingerIdType;
 class User
 {
   private:
+    static int nextId;
     string Name;
     int UserId;
-    int Fingerprint;
-    Medication *Prescriptions;
+    fingerIdType Fingerprint;
+    vector<Medication> Prescriptions;
     bool Trusted;
 
   public:
-    int addUser(string name, fingerIdType fingerprint);
-    bool removeUser(int userId, fingerIdType fingerprint);
-    bool elevateUser(int userId, fingerIdType fingerIdType fingerprint);
+    string getName(void);
+    int getUserId(void);
+    bool isTrusted(void);
+    bool elevateTrust(User &admin);
 }

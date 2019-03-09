@@ -1,13 +1,32 @@
 #include "user.hpp"
 
-int User::addUser(string name, fingerIdType fingerprint)
+User::User(string name, fingerIdType fingerprint)
 {
+    this.Name = name;
+    this.UserId = this.nextId++;
+    this.Fingerprint = fingerprint;
+    this.Trusted = false;
 }
 
-bool User::removeUser(int userId, fingerIdType fingerprint)
+string User::getName(void)
 {
+    return this.Name;
 }
 
-bool User::elevateUser(int userId, fingerIdType fingerIdType fingerprint)
+int User::getUserId(void)
 {
+    return this.UserId;
+}
+
+bool User::isTrusted(void)
+{
+    return this.Trusted;
+}
+
+bool User::elevateTrust(User &admin)
+{
+    if (admin.isTrusted())
+        this.Trusted = true;
+
+    return this.Trusted;
 }
