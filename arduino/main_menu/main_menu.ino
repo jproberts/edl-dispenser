@@ -37,6 +37,7 @@ enum States system_state = WELCOME_MENU;
 void setup()
 {
   Serial.begin(9600);
+  fps.Open(); //send serial command to initialize fps
   // Set SHIFTREG and ROT_SWITCH as inputs.
   DDRD &= !(1 << SHIFTREG_Q_pin);
   DDRD &= !(1 << ROT_SWITCH_pin);
@@ -142,9 +143,14 @@ void loop()
     }
     break;
   }
+  // I'm beginning to think this shouldn't be a state in the loop.
+  // You need to do it from a lot of different places, then return to the previous state, but there's not a very good way of tracking that to go back.
+
+  // Maybe create a separate function that takes in the success state and the failure state, then switches states accordingly?
   case AUTHENTICATE_USER: // I'm beginning to think this shouldn't be a state in the loop. You need to do it from a lot of different places, then return to the previous state, but there's not a very good way of tracking that to go back.
   {
     Serial.println("Please authenticate yourself by placing your finger down on the scanner.");
+    fps.SetLED(true); //turn on LED so fps can see fingerprint
     while (1)
     {
       //nope, this should be fingerprint authenticating
@@ -153,6 +159,38 @@ void loop()
         system_state = WELCOME_MENU;
         break;
       }
+
+      // Identify fingerprint
+      if (fps.IsPressFinger())
+      {
+        fps.CaptureFinger(false);
+        int id = fps.Identify1_N();
+
+        /*Note: GT-521F32 can hold 200 fingerprint templates */
+        if (id < 200)
+        {
+          if (getUserFromId(id)) // Checks that user is registered
+          {
+            Serial.print("Verified ID:");
+            Serial.println(id);
+          }
+          else
+          {
+            Serial.println("Access denied.");
+            system_state = WELCOME_MENU; // Would be nicer to have a denied page, not sure if we'll have time.
+          }
+        }
+        else
+        { //if unable to recognize
+          Serial.println("Finger not found");
+          system_state = WELCOME_MENU;
+        }
+      }
+      else
+      {
+        Serial.println("Please press finger");
+      }
+      delay(100);
     }
     break;
   }
@@ -223,7 +261,7 @@ void loop()
     }
     break;
   }
-  case AUTHENTICATE_OTHER:
+  case AUTHENTICATE_OTHER: // I'm assuming this is authenticating trusted users.
   {
     Serial.println("Please authenticate yourself by placing your finger down on the scanner\nMore info to come");
     while (1)
@@ -234,9 +272,35 @@ void loop()
         system_state = OPEN_LID_MENU;
         break;
       }
+
+      // Identify fingerprint
+      if (fps.IsPressFinger())
+      {
+        fps.CaptureFinger(false);
+        int id = fps.Identify1_N();
+
+        /*Note: GT-521F32 can hold 200 fingerprint templates */
+        if (id < 200)
+        {
+          if (getUserFromId(id).isTrusted()) // Checks that user is trusted
+          {
+            Serial.print("Verified ID:");
+            Serial.println(id);
+          }
+          else
+          {
+            Serial.println("Access denied.");
+            system_state = WELCOME_MENU; // Would be nicer to have a denied page, not sure if we'll have time.
+          }
+        }
+        else
+        { //if unable to recognize
+          Serial.println("Finger not found");
+          system_state = WELCOME_MENU;
+        }
+      }
+      break;
     }
-    break;
-  }
   case MEDS_DASHBOARD:
   {
     Serial.println("You will be getting your meds shortly!\nSupply: 30 pills left\nNext medication: 6 hours from now, or 06:00\nPress (1) to return to the welcome screen");
@@ -264,4 +328,4 @@ void loop()
     break;
   }
   }
-}
+  }
