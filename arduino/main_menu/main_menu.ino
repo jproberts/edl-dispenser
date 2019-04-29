@@ -1,11 +1,20 @@
-/* Missing many features but this is a basic framework */
+//todo: please clean this up im rusty on this and dont wanna think about it
 #include "pin_definitions.h"
+#include "FPS_GT511C3.h"
+#include "SoftwareSerial.h"
+//TODO: i think we dont need this?
+#include "medication.h"
+#include "user.h"
+//how do you include system.h or should we like redo it idk
+// use your judgment i trust you
 
-#define BUTTON_TWO shiftReg[4]
-#define BUTTON_THREE shiftReg[5]
+#define BUTTON_ONE shiftReg[4]
+#define BUTTON_TWO shiftReg[5]
+
+//TODO: plz put the right pins here, james
+FPS_GT511C3 fps(4, 5);
 
 int shiftReg[8];
-
 /* shiftReg
   0: Hall1
   1: Hall2
@@ -17,22 +26,12 @@ int shiftReg[8];
 
 enum States
 {
-  WELCOME_MENU,
-  USER_MENU_1,
-  PRESCRIPTION_MENU,
-  TAKING_MEDS_MENU,
-  GIVE_USER_INFO,
-  AUTHENTICATE_USER,
-  USER_MENU_2,
-  USER_LIST,
-  GIVE_PRESCRIPTION_INFO,
-  OPEN_LID_MENU,
-  AUTHENTICATE_OTHER,
-  MEDS_DASHBOARD,
-  LID_IS_OPEN
+  Welcome, Authenticate, Main_Menu, User_Menu_1, User_Menu_2,
+  Add_User, Remove_User, Elevate_User, Meds_Menu_1,
+  Meds_Menu_2, Supply_Mode, Get_Meds, Add_Scrips
 };
 
-enum States system_state = WELCOME_MENU;
+enum States system_state = Welcome;
 
 void setup()
 {
@@ -45,145 +44,139 @@ void setup()
 
 void loop()
 {
-  readShiftRegister(shiftReg);
+  //TODO: hi pls get this to work, yay!
+  //readShiftRegister(shiftReg);
   switch (system_state)
   {
-  case WELCOME_MENU:
+  case Welcome:
   {
-    Serial.println("Welcome! The time is 00:00\n1. User functions\n2. Prescription functions\n3. Give/Get meds");
+    Serial.println("Welcome! Press 1 to authenticate");
     while (1)
     {
-      if (ROT_SWITCH_PIN & (1 << ROT_SWITCH_pin) == 0)
+      if (BUTTON_ONE == 0)
       {
-        system_state = USER_MENU_1;
+        system_state = Authenticate;
+        break;
+      }
+    }
+    break;
+  }
+  case Main_Menu:
+  {
+    Serial.println("1) Meds menu\n2) User menu\n3) Log out");
+    while (1)
+    {
+      if (BUTTON_ONE == 0)
+      {
+        system_state = Meds_Menu_1;
         break;
       }
       if (BUTTON_TWO == 0)
       {
-        system_state = PRESCRIPTION_MENU;
+        system_state = User_Menu_1;
         break;
-      }
-      if (BUTTON_THREE == 0)
-      {
-        system_state = TAKING_MEDS_MENU;
+      }      
+      if (ROT_SWITCH_PIN & (1 << ROT_SWITCH_pin) == 0) {
+        system_state = Welcome;
         break;
       }
     }
     break;
   }
-  case USER_MENU_1:
+  case Add_User:
   {
-    Serial.println("User functions:\n1. Add user\n2. Remove user\n3. More options");
+    Serial.println("Add user! Follow the instructions");
     while (1)
     {
-      if (ROT_SWITCH_PIN & (1 << ROT_SWITCH_pin) == 0 || BUTTON_TWO == 0)
-      {
-        system_state = GIVE_USER_INFO; // How does this state know whether you're trying to add or remove a user?
-        break;
-      }
-      if (BUTTON_THREE == 0)
-      {
-        system_state = USER_MENU_2;
-        break;
-      }
-    }
-    break;
-  }
-  case PRESCRIPTION_MENU:
-  {
-    Serial.println("Prescription functions:\n1. Add scrip\n2. Remove scrip\n3. Return to welcome screen");
-    while (1)
-    {
-      if (ROT_SWITCH_PIN & (1 << ROT_SWITCH_pin) == 0 || BUTTON_TWO == 0)
-      {
-        system_state = GIVE_PRESCRIPTION_INFO; // Same issue with state not knowing if you add or subtract.
-        break;
-      }
-      if (BUTTON_THREE == 0)
-      {
-        system_state = WELCOME_MENU;
-        break;
-      }
-    }
-    break;
-  }
-  case TAKING_MEDS_MENU:
-  {
-    Serial.println("Give/get meds:\n1. Open the box\n2. Get your meds\n3. Return to welcome screen");
-    while (1)
-    {
-      if (ROT_SWITCH_PIN & (1 << ROT_SWITCH_pin) == 0)
-      {
-        system_state = OPEN_LID_MENU;
-        break;
-      }
-      if (BUTTON_TWO == 0)
-      {
-        system_state = AUTHENTICATE_OTHER;
-        break;
-      }
-      if (BUTTON_THREE == 0)
-      {
-        system_state = WELCOME_MENU;
-        break;
-      }
-    }
-    break;
-  }
-  case GIVE_USER_INFO:
-  {
-    Serial.println("Please give the necessary info needed to perform this user action. Press (1) to move on and authenticate");
-    while (1)
-    {
-      if (ROT_SWITCH_PIN & (1 << ROT_SWITCH_pin) == 0)
-      {
-        system_state = AUTHENTICATE_USER;
-        break;
-      }
-    }
-    break;
-  }
-  // I'm beginning to think this shouldn't be a state in the loop.
-  // You need to do it from a lot of different places, then return to the previous state, but there's not a very good way of tracking that to go back.
+       // TODO: micro-code to capture all of the inputs, buttons 2 and 3
+       // don't forget to like... get their fingerprint
 
-  // Maybe create a separate function that takes in the success state and the failure state, then switches states accordingly?
-  case AUTHENTICATE_USER: // I'm beginning to think this shouldn't be a state in the loop. You need to do it from a lot of different places, then return to the previous state, but there's not a very good way of tracking that to go back.
+      if (BUTTON_ONE == 0)
+      {
+        //TODO: look at the diagram, I think I meant to have b1 going to main menu, not authenticate
+        system_state = Main_Menu;
+        break;
+      }
+    }
+    break;
+  }
+  case User_Menu_1:
+  {
+    Serial.println("1) Add\n2) Remove\n3) More options");
+    while (1)
+    {
+      if (BUTTON_ONE == 0)
+      {
+        system_state = Add_User;
+        break;
+      }
+      if (BUTTON_TWO == 0)
+      {
+        system_state = Remove_User;
+        break;
+      }
+      if (ROT_SWITCH_PIN & (1 << ROT_SWITCH_pin) == 0)
+      {
+        system_state = User_Menu_2;
+        break;
+      }
+    }
+    break;
+  }
+  case User_Menu_2:
+  {
+    Serial.println("1) Elevate \n2) Back to main menu");
+    while (1)
+    {
+      if (BUTTON_ONE == 0)
+      {
+        system_state = Elevate_User;
+        break;
+      }
+      if (BUTTON_TWO == 0)
+      {
+        system_state = Main_Menu;
+        break;
+      }
+    }
+    break;
+  }
+
+  //TODO: when do you want to fps.SetLED(false), in the welcome menu or at the end of this?
+  case Authenticate:
   {
     Serial.println("Please authenticate yourself by placing your finger down on the scanner.");
-    fps.SetLED(true); //turn on LED so fps can see fingerprint
+    fps.SetLED(true); // turn on LED so fps can see fingerprint
     while (1)
     {
-      //nope, this should be fingerprint authenticating
-      if (ROT_SWITCH_PIN & (1 << ROT_SWITCH_pin) == 0)
-      {
-        system_state = WELCOME_MENU;
-        break;
-      }
-
       // Identify fingerprint
       if (fps.IsPressFinger())
       {
         fps.CaptureFinger(false);
         int id = fps.Identify1_N();
 
-        /*Note: GT-521F32 can hold 200 fingerprint templates */
         if (id < 200)
         {
-          if (getUserFromId(id)) // Checks that user is registered
+          //TODO: get this to work
+          /*if (getUserFromId(id)) // Checks that user is registered
           {
-            Serial.print("Verified ID:");
+            Serial.print("Access granted. Verified ID:");
             Serial.println(id);
+            system_state = Main_Menu;
           }
           else
           {
-            Serial.println("Access denied.");
-            system_state = WELCOME_MENU; // Would be nicer to have a denied page, not sure if we'll have time.
+            Serial.println("Access denied. You're being sent to jail, don't collect $200");
+            // TODO: add a buzz here
+            system_state = Welcome;
           }
+          */
         }
         else
-        { //if unable to recognize
-          Serial.println("Finger not found");
-          system_state = WELCOME_MENU;
+        {
+          Serial.println("Finger not found. You're being sent to jail, don't collect $200");
+          // TODO: add a buzz here
+          system_state = Welcome;
         }
       }
       else
@@ -194,138 +187,128 @@ void loop()
     }
     break;
   }
-  case USER_MENU_2:
+  case Remove_User:
   {
-    Serial.println("More user functions:\n1. Elevate user \n2. Show all users \n3. Return to welcome screen");
+    Serial.println("Scroll through this list of users and press down on the rotary encoder.");
     while (1)
     {
+      // TODO: add rotary code to actually scroll through the users
+
+      //then once you pressed it, beep and leave
       if (ROT_SWITCH_PIN & (1 << ROT_SWITCH_pin) == 0)
       {
-        system_state = GIVE_USER_INFO;
+        // TODO: add a beep
+        system_state = Main_Menu;
+        break;
+      }
+    }
+    break;
+  }
+  case Elevate_User:
+  {
+    Serial.println("Scroll through this list of users and press down on the rotary encoder.");
+    while (1)
+    {
+      // TODO: add rotary code to actually scroll through the users
+
+      //then once you pressed it, beep and leave
+      if (ROT_SWITCH_PIN & (1 << ROT_SWITCH_pin) == 0)
+      {
+        // TODO: add a beep
+        system_state = Main_Menu;
+        break;
+      }
+    }
+    break;
+  }
+  case Meds_Menu_1:
+  {
+    Serial.println("1) Get meds\n2) Add scrip\n3) More options");
+    while (1)
+    {
+      if (BUTTON_ONE == 0)
+      {
+        system_state = Get_Meds;
         break;
       }
       if (BUTTON_TWO == 0)
       {
-        system_state = USER_LIST;
+        system_state = Add_Scrips;
         break;
       }
-      if (BUTTON_THREE == 0)
-      {
-        system_state = WELCOME_MENU;
-        break;
-      }
-    }
-    break;
-  }
-  case USER_LIST:
-  {
-    Serial.println("Here is a list of all of the users.\n0. Sarah\n1. James\n2. Elizabeth\n3. Pedro");
-    while (1)
-    {
       if (ROT_SWITCH_PIN & (1 << ROT_SWITCH_pin) == 0)
       {
-        system_state = WELCOME_MENU;
+        system_state = Meds_Menu_2;
         break;
       }
     }
     break;
   }
-  case GIVE_PRESCRIPTION_INFO:
+  case Meds_Menu_2:
   {
-    Serial.println("Please give the necessary info needed to perform this prescription action. Press (1) to move on and authenticate");
+    Serial.println("1) Supply mode\n2) Main menu");
     while (1)
     {
-      if (ROT_SWITCH_PIN & (1 << ROT_SWITCH_pin) == 0)
+      if (BUTTON_ONE == 0)
       {
-        system_state = AUTHENTICATE_USER;
+        system_state = Supply_Mode;
+        break;
+      }
+      if (BUTTON_TWO == 0)
+      {
+        system_state = Main_Menu;
         break;
       }
     }
     break;
   }
-  case OPEN_LID_MENU:
+  case Supply_Mode:
   {
-    Serial.println("Open the box:\n1. Add medication to box\n2. Take medication from the box\n3. Return to welcome screen");
-    while (1)
-    {
-      if (ROT_SWITCH_PIN & (1 << ROT_SWITCH_pin) == 0 || BUTTON_TWO == 0)
-      {
-        system_state = AUTHENTICATE_OTHER;
-        break;
-      }
-      if (BUTTON_THREE == 0)
-      {
-        system_state = WELCOME_MENU;
-        break;
-      }
-    }
-    break;
-  }
-  case AUTHENTICATE_OTHER: // I'm assuming this is authenticating trusted users.
-  {
-    Serial.println("Please authenticate yourself by placing your finger down on the scanner\nMore info to come");
-    while (1)
-    {
-      //nope, this should be fingerprint authenticating
-      if (ROT_SWITCH_PIN & (1 << ROT_SWITCH_pin) == 0)
-      {
-        system_state = OPEN_LID_MENU;
-        break;
-      }
+    Serial.println("Supply mode time");
 
-      // Identify fingerprint
-      if (fps.IsPressFinger())
+    //TODO: add micro code to select container, open lid (waiting for b1)
+    //select scrip, then add it, then go back
+    while (1)
+    {
+      if (BUTTON_TWO == 0)
       {
-        fps.CaptureFinger(false);
-        int id = fps.Identify1_N();
+        system_state = Main_Menu;
+        break;
+      }
+    break;
+    }
+  }
+  case Get_Meds:
+  {
+    Serial.println("Get meds!");
 
-        /*Note: GT-521F32 can hold 200 fingerprint templates */
-        if (id < 200)
-        {
-          if (getUserFromId(id).isTrusted()) // Checks that user is trusted
-          {
-            Serial.print("Verified ID:");
-            Serial.println(id);
-          }
-          else
-          {
-            Serial.println("Access denied.");
-            system_state = WELCOME_MENU; // Would be nicer to have a denied page, not sure if we'll have time.
-          }
-        }
-        else
-        { //if unable to recognize
-          Serial.println("Finger not found");
-          system_state = WELCOME_MENU;
-        }
-      }
-      break;
-    }
-  case MEDS_DASHBOARD:
-  {
-    Serial.println("You will be getting your meds shortly!\nSupply: 30 pills left\nNext medication: 6 hours from now, or 06:00\nPress (1) to return to the welcome screen");
+    // TODO: if meds available, dispense and show remaining count
+    // else display time for next dispensing
     while (1)
     {
-      if (ROT_SWITCH_PIN & (1 << ROT_SWITCH_pin) == 0)
+      // go back to main menu after all that stuff happens
+      if (BUTTON_ONE == 0)
       {
-        system_state = WELCOME_MENU;
+        system_state = Main_Menu;
         break;
       }
     }
     break;
   }
-  case LID_IS_OPEN:
+  case Add_Scrips:
   {
-    Serial.println("The lid is open. Please take care of your operation and press (1) when you are finished.");
+    Serial.println("Add scrips! Follow the instructions");
     while (1)
     {
-      if (ROT_SWITCH_PIN & (1 << ROT_SWITCH_pin) == 0)
+       // TODO: micro-code to capture all of the inputs, buttons 2 and 3
+
+      if (BUTTON_ONE == 0)
       {
-        system_state = WELCOME_MENU;
+        system_state = Main_Menu;
         break;
       }
     }
     break;
   }
-  }
-  }
+ }
+}
