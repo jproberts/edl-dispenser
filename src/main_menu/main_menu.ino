@@ -79,7 +79,7 @@ enum States
   Add_Scrips
 };
 
-enum States system_state = Welcome;
+enum States system_state = Meds_Menu_2;
 
 void setup()
 {
@@ -87,10 +87,9 @@ void setup()
   // fps.Open(); // send serial command to initialize fps
   tft.begin(); // Initialize display.
   // Set SHIFTREG and ROT_SWITCH as inputs.
-  tft.println("Setting pins");
-  //  DDRD &= !(1 << SHIFTREG_Q_pin);
-  //  DDRD &= !(1 << ROT_SWITCH_pin);
-  tft.println("Testing screen");
+  DDRD &= !(1 << SHIFTREG_Q_pin);
+  DDRD &= !(1 << ROT_SWITCH_pin);
+  tft.setRotation(1);
   tft.fillScreen(ILI9341_BLACK);
   tft.setCursor(0, 0);
   tft.setTextColor(ILI9341_WHITE);
@@ -100,13 +99,19 @@ void setup()
 
 void loop()
 {
+  // Reset display
+  tft.fillScreen(ILI9341_OLIVE);
+  tft.setCursor(0, 0);
+  tft.setTextColor(ILI9341_WHITE);
+  tft.setTextSize(2);
+  tft.println("");
   //TODO: hi pls get this to work, yay!
   //readShiftRegister(shiftReg);
   switch (system_state)
   {
   case Welcome:
   {
-    tft.println("Welcome! Press 1 to authenticate");
+    showWelcomeScreen();
     while (1)
     {
       if (BUTTON_ONE == 0)
@@ -119,7 +124,7 @@ void loop()
   }
   case Main_Menu:
   {
-    tft.println("1) Meds menu\n2) User menu\n3) Log out"); // Note: tft handles \n characters, so this will work.
+    showMainMenu();
     while (1)
     {
       if (BUTTON_ONE == 0)
@@ -159,7 +164,7 @@ void loop()
   }
   case User_Menu_1:
   {
-    tft.println("1) Add\n2) Remove\n3) More options");
+    showUserMenu1();
     while (1)
     {
       if (BUTTON_ONE == 0)
@@ -182,7 +187,7 @@ void loop()
   }
   case User_Menu_2:
   {
-    tft.println("1) Elevate \n2) Back to main menu");
+    showUserMenu2();
     while (1)
     {
       if (BUTTON_ONE == 0)
@@ -203,7 +208,7 @@ void loop()
   // I put it after the finger press is recognized.
   case Authenticate:
   {
-    tft.println("Please authenticate yourself by placing your finger down on the scanner.");
+    showAuthenticateScreen();
     fps.SetLED(true); // turn on LED so fps can see fingerprint
     while (1)
     {
@@ -283,7 +288,7 @@ void loop()
   }
   case Meds_Menu_1:
   {
-    tft.println("1) Get meds\n2) Add scrip\n3) More options");
+    showMedsMenu1();
     while (1)
     {
       if (BUTTON_ONE == 0)
@@ -306,7 +311,7 @@ void loop()
   }
   case Meds_Menu_2:
   {
-    tft.println("1) Supply mode\n2) Main menu");
+    showMedsMenu2();
     while (1)
     {
       if (BUTTON_ONE == 0)
@@ -337,6 +342,7 @@ void loop()
       }
       break;
     }
+    break;
   }
   case Get_Meds:
   {
@@ -378,28 +384,75 @@ void buzz()
   tft.println("BEEP");
 }
 
-unsigned long testWelcomeScreen()
+void showWelcomeScreen()
 {
-  tft.fillScreen(ILI9341_BLACK);
-  tft.setCursor(0, 0);
-  //  tft.setTextColor(ILI9341_WHITE);  tft.setTextSize(1);
-  //  tft.println("Hello World!");
-  //  tft.setTextColor(ILI9341_YELLOW); tft.setTextSize(2);
-  //  tft.println(1234.56);
   tft.setTextColor(ILI9341_WHITE);
   tft.setTextSize(3);
-  tft.println("WELCOME TO");
-  tft.print("PHARM");
+  tft.println("    WELCOME TO");
+  tft.print("   PHARM");
   tft.setTextColor(ILI9341_RED);
   tft.print("-");
   tft.setTextColor(ILI9341_WHITE);
   tft.println("ASSIST");
   tft.println();
-  tft.setTextColor(ILI9341_GREEN);
+  tft.setTextColor(ILI9341_MAROON);
   tft.setTextSize(2);
-  tft.println("Press Button 1");
-  tft.println("to authenticate yourself.");
-  return 0;
+  tft.println(" Press Button 1");
+  tft.println(" to authenticate yourself.");
+  delay(4000);
+  return;
+}
+
+void showMainMenu()
+{
+  tft.setTextColor(ILI9341_MAROON); tft.setTextSize(3);
+  tft.println("  \t\tMAIN MENU\t\t\n");
+  tft.setTextColor(ILI9341_WHITE); tft.setTextSize(2);
+  tft.println(" 1) Meds menu\n 2) User menu\n 3) Log out"); // Note: tft handles \n characters, so this will work.
+  delay(4000);
+}
+
+void showUserMenu1()
+{
+  tft.setTextColor(ILI9341_MAROON); tft.setTextSize(3);
+  tft.println("   \tUSER MENU\t\n");
+  tft.setTextColor(ILI9341_WHITE); tft.setTextSize(2);
+  tft.println(" 1) Add user\n 2) Remove user\n 3) More options");
+  delay(4000);
+}
+
+void showUserMenu2()
+{
+  tft.setTextColor(ILI9341_MAROON); tft.setTextSize(3);
+  tft.println(" \tUSER MENU cont\t\n");
+  tft.setTextColor(ILI9341_WHITE); tft.setTextSize(2);
+  tft.println(" 1) Elevate user \n 2) Back to main menu");
+  delay(4000);
+}
+
+void showAuthenticateScreen()
+{
+  tft.setTextColor(ILI9341_MAROON); tft.setTextSize(3);
+  tft.println("  \tAUTHENTICATE\t\n");
+  tft.setTextColor(ILI9341_WHITE); tft.setTextSize(2);
+  tft.println(" Please place your finger\nto authenticate yourself.");
+}
+
+void showMedsMenu1() {
+  tft.setTextColor(ILI9341_MAROON); tft.setTextSize(3);
+  tft.println("   \tMEDS MENU\t\n");
+  tft.setTextColor(ILI9341_WHITE); tft.setTextSize(2);  
+  tft.println(" 1) Get meds\n 2) Add perscription\n 3) More options");
+  delay(4000);
+}
+
+void showMedsMenu2() {
+  tft.setTextColor(ILI9341_MAROON); tft.setTextSize(3);
+  tft.println(" \tMEDS MENU cont\t\n");
+  
+  tft.setTextColor(ILI9341_WHITE); tft.setTextSize(2);  
+  tft.println(" 1) Supply mode\n 2) Main menu");
+  delay(4000);
 }
 
 User *getUserFromId(userIdType userId)
