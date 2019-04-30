@@ -10,6 +10,7 @@
 
 #define BUTTON_ONE shiftReg[4]
 #define BUTTON_TWO shiftReg[5]
+#define BUTTON_THREE (ROT_SWITCH_PIN & (1 << ROT_SWITCH_pin))
 
 //TODO: plz put the right pins here, james
 FPS_GT511C3 fps(4, 5);
@@ -40,6 +41,7 @@ void setup()
   // Set SHIFTREG and ROT_SWITCH as inputs.
   DDRD &= !(1 << SHIFTREG_Q_pin);
   DDRD &= !(1 << ROT_SWITCH_pin);
+  Serial.println("SETUP TEST");
 }
 
 void loop()
@@ -76,7 +78,7 @@ void loop()
         system_state = User_Menu_1;
         break;
       }      
-      if (ROT_SWITCH_PIN & (1 << ROT_SWITCH_pin) == 0) {
+      if (BUTTON_THREE == 0) {
         system_state = Welcome;
         break;
       }
@@ -115,7 +117,7 @@ void loop()
         system_state = Remove_User;
         break;
       }
-      if (ROT_SWITCH_PIN & (1 << ROT_SWITCH_pin) == 0)
+      if (BUTTON_THREE == 0)
       {
         system_state = User_Menu_2;
         break;
@@ -195,7 +197,7 @@ void loop()
       // TODO: add rotary code to actually scroll through the users
 
       //then once you pressed it, beep and leave
-      if (ROT_SWITCH_PIN & (1 << ROT_SWITCH_pin) == 0)
+      if (BUTTON_THREE == 0)
       {
         // TODO: add a beep
         system_state = Main_Menu;
@@ -212,7 +214,7 @@ void loop()
       // TODO: add rotary code to actually scroll through the users
 
       //then once you pressed it, beep and leave
-      if (ROT_SWITCH_PIN & (1 << ROT_SWITCH_pin) == 0)
+      if (BUTTON_THREE == 0)
       {
         // TODO: add a beep
         system_state = Main_Menu;
@@ -236,7 +238,7 @@ void loop()
         system_state = Add_Scrips;
         break;
       }
-      if (ROT_SWITCH_PIN & (1 << ROT_SWITCH_pin) == 0)
+      if (BUTTON_THREE == 0)
       {
         system_state = Meds_Menu_2;
         break;
@@ -311,4 +313,5 @@ void loop()
     break;
   }
  }
+ delay(100);
 }
