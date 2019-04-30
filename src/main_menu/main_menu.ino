@@ -25,6 +25,25 @@ Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC);
 #define BUTTON_ONE shiftReg[4]
 #define BUTTON_TWO shiftReg[5]
 
+/* SYSTEM */
+
+#define MAX_USERS 8
+#define MAX_MEDICATIONS 50
+
+int numUsers;
+int numMeds;
+User *UserList;
+Medication *MedicationList;
+
+userIdType addUser(char *name, fingerIdType fingerprint);
+bool removeUser(int userId, fingerIdType fingerprint);
+bool elevateUser(int userId, fingerIdType fingerprint);
+User *getUserFromId(userIdType userId);
+User *getUserFromPrint(fingerIdType fingerprint);
+bool addPrescription(User *user, Medication *meds);
+bool removePrescription(User *user, Medication *meds);
+void alertUser(Medication *meds);
+
 int shiftReg[8];
 /* shiftReg
   0: Hall1
@@ -64,7 +83,7 @@ enum States system_state = Welcome;
 void setup()
 {
   Serial.begin(9600);
-  //fps.Open(); // send serial command to initialize fps
+  // fps.Open(); // send serial command to initialize fps
   tft.begin(); // Initialize display.
   // Set SHIFTREG and ROT_SWITCH as inputs.
   tft.println("Setting pins");
@@ -99,7 +118,7 @@ void loop()
   }
   case Main_Menu:
   {
-    tft.println("1) Meds menu\n2) User menu\n3) Log out");
+    tft.println("1) Meds menu\n2) User menu\n3) Log out"); // Note: tft handles \n characters, so this will work.
     while (1)
     {
       if (BUTTON_ONE == 0)
@@ -380,4 +399,102 @@ unsigned long testWelcomeScreen()
   tft.println("Press Button 1");
   tft.println("to authenticate yourself.");
   return 0;
+}
+
+
+User *getUserFromId(userIdType userId)
+{
+  for (int i = 0; i < numUsers; i++)
+  {
+    User *user = UserList + i;
+    if (user->getUserId() == userId)
+      return user;
+  }
+  return nullptr;
+}
+
+User *getUserFromPrint(fingerIdType fingerprint)
+{
+  for (int i = 0; i < numUsers; i++)
+  {
+    User *user = UserList + i;
+    if (user->getFingerprint() == fingerprint)
+      return user;
+  }
+  return nullptr;
+}
+
+userIdType addUser(char *name, fingerIdType fingerprint)
+{
+  if (numUsers == MAX_USERS)
+  {
+    return -1;
+  }
+  User newUser = User(name, fingerprint);
+  UserList[numUsers] = (newUser);
+  return newUser.getUserId();
+}
+
+bool removeUser(int userId, fingerIdType fingerprint)
+{
+  User *admin = getUserFromPrint(fingerprint);
+  if (admin == nullptr || !admin->isTrusted())
+    return false;
+  else
+  {
+    bool swap = false;
+    for (int i = 0; i < numUsers; i++)
+    {
+      User *user = UserList + i;
+      if (user->getFingerprint() == fingerprint)
+      {
+        swap = true;
+      }
+      if (swap)
+      {
+        UserList[i] = UserList[i + 1];
+      }
+    }
+    if (swap)
+    {
+      numUsers--;
+    }
+    return swap;
+  }
+}
+
+bool elevateUser(int userId, fingerIdType fingerprint)
+{
+  User *admin = getUserFromPrint(fingerprint);
+  User *user = getUserFromId(userId);
+
+  if (admin == nullptr || user == nullptr)
+    return false;
+  else
+    return user->elevateTrust(admin);
+}
+
+bool addPrescription(User *user, Medication *meds)
+{
+  // time_t current_time = time(nullptr);
+
+  // int delay = meds->getTimeOfDay() - current_time;
+  // int interval = meds->getFrequency();
+
+  // SimpleTimer t = SimpleTimer();
+  // // cout << "Starting timeout" << endl;
+  // // cout << "Found interval: " << interval << endl;
+  // auto repeat = [](SimpleTimer t, int interval, Medication *meds) {
+  // 	t.setInterval(alertUser,
+  // 				  interval, meds);
+  // };
+
+  // t.setTimeout(repeat, delay, t, interval, meds);
+
+  return true;
+}
+
+void alertUser(Medication *meds)
+{
+  // std::cout << "Time for medication: " << meds->getName() << std::endl;
 }
