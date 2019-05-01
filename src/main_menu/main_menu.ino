@@ -517,7 +517,7 @@ userIdType addUser(char *name, fingerIdType fingerprint)
     return -1;
   }
   User newUser = User(name, fingerprint);
-  UserList[numUsers] = (newUser);
+  UserList[numUsers++] = (newUser);
   return newUser.UserId;
 }
 
@@ -599,7 +599,7 @@ void alertUser(Medication *meds)
 {
   Serial.print(meds->Name);
   Serial.println(F(" is ready."));
-  for (uint8_t i = 0; i < MAX_USERS; i++)
+  for (uint8_t i = 0; i < numUsers; i++)
   {
     for (uint8_t j = 0; j < 3; j++)
     {
@@ -620,4 +620,22 @@ void createAlert(Medication *meds)
 void setupAlert(Medication *meds)
 {
   ttimer.setTimeout(meds->TimeOfDay, createAlert, meds);
+}
+
+void openLid()
+{
+  SOLENOID_FORWARD_PORT |= (1 << SOLENOID_FORWARD_pin);
+  SOLENOID_REVERSE_PORT &= ~(1 << SOLENOID_REVERSE_pin);
+  delay(2); // Delays are all in microseconds, so this should be plenty.
+  SOLENOID_FORWARD_PORT &= ~(1 << SOLENOID_FORWARD_pin);
+  delay(2);
+}
+
+void closeLid()
+{
+  SOLENOID_REVERSE_PORT |= (1 << SOLENOID_REVERSE_pin);
+  SOLENOID_FORWARD_PORT &= ~(1 << SOLENOID_FORWARD_pin);
+  delay(2); // Delays are all in microseconds, so this should be plenty.
+  SOLENOID_REVERSE_PORT &= ~(1 << SOLENOID_REVERSE_pin);
+  delay(2);
 }
