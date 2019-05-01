@@ -10,7 +10,7 @@ typedef int userIdType;
 
 class User
 {
-	private:
+  public:
 	static int nextId;
 	char *Name;
 	userIdType UserId;
@@ -19,12 +19,7 @@ class User
 	int prescriptionCount;
 	bool Trusted;
 
-	public:
 	User(char *name, fingerIdType print);
-	char *getName(void) const;
-	userIdType getUserId(void) const;
-	fingerIdType getFingerprint(void) const;
-	bool isTrusted(void) const;
 	bool elevateTrust(User *admin);
 };
 
