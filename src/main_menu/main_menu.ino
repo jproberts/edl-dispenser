@@ -8,6 +8,7 @@
 //TODO: i think we dont need this?
 #include "medication.h"
 #include "user.h"
+#include "SimpleTimer.h"
 //how do you include system.h or should we like redo it idk
 // use your judgment i trust you
 
@@ -29,12 +30,13 @@ Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC);
 /* SYSTEM */
 
 #define MAX_USERS 8
-#define MAX_MEDICATIONS 50
+#define MAX_MEDICATIONS 24
 
 int numUsers;
 int numMeds;
 User *UserList;
 Medication *MedicationList;
+char availableMeds[3];
 
 userIdType addUser(char *name, fingerIdType fingerprint);
 bool removeUser(int userId, fingerIdType fingerprint);
@@ -44,6 +46,8 @@ User *getUserFromPrint(fingerIdType fingerprint);
 bool addPrescription(User *user, Medication *meds);
 bool removePrescription(User *user, Medication *meds);
 void alertUser(Medication *meds);
+
+SimpleTimer ttimer;
 
 int shiftReg[8];
 /* shiftReg
@@ -97,6 +101,8 @@ void setup()
   //testWelcomeScreen();
 }
 
+User *currentUser = NULL;
+
 void loop()
 {
   // Reset display
@@ -104,7 +110,7 @@ void loop()
   tft.setCursor(0, 0);
   tft.setTextColor(ILI9341_WHITE);
   tft.setTextSize(2);
-  tft.println("");
+  tft.println();
   //TODO: hi pls get this to work, yay!
   //readShiftRegister(shiftReg);
   switch (system_state)
@@ -147,7 +153,7 @@ void loop()
   }
   case Add_User:
   {
-    tft.println("Add user! Follow the instructions");
+    tft.println(F("Add user! Follow the instructions"));
     while (1)
     {
       // TODO: micro-code to capture all of the inputs, buttons 2 and 3
@@ -222,23 +228,23 @@ void loop()
         if (id < 200)
         {
           //TODO: get this to work
-          /*if (getUserFromId(id)) // Checks that user is registered
+          currentUser = getUserFromId(id);
+          if (currentUser) // Checks that user is registered
           {
-            Serial.print("Access granted. Verified ID:");
+            tft.print(F("Access granted. Verified ID: "));
             tft.println(id);
             system_state = Main_Menu;
           }
           else
           {
-            tft.println("Access denied. You're being sent to jail, don't collect $200");
+            tft.println(F("Access denied. You're being sent to jail, don't collect $200"));
             buzz();
-              system_state = Welcome;
+            system_state = Welcome;
           }
-          */
         }
         else
         {
-          tft.println("Finger not found. You're being sent to jail, don't collect $200");
+          tft.println(F("Finger not found. You're being sent to jail, don't collect $200"));
           buzz();
           system_state = Welcome;
           break;
@@ -246,7 +252,7 @@ void loop()
       }
       else
       {
-        tft.println("Please press finger");
+        tft.println(F("Please press finger"));
       }
       delay(100);
     }
@@ -254,7 +260,7 @@ void loop()
   }
   case Remove_User:
   {
-    tft.println("Scroll through this list of users and press down on the rotary encoder.");
+    tft.println(F("Scroll through this list of users and press down on the rotary encoder."));
     while (1)
     {
       // TODO: add rotary code to actually scroll through the users
@@ -271,7 +277,7 @@ void loop()
   }
   case Elevate_User:
   {
-    tft.println("Scroll through this list of users and press down on the rotary encoder.");
+    tft.println(F("Scroll through this list of users and press down on the rotary encoder."));
     while (1)
     {
       // TODO: add rotary code to actually scroll through the users
@@ -329,7 +335,7 @@ void loop()
   }
   case Supply_Mode:
   {
-    tft.println("Supply mode time");
+    tft.println(F("Supply mode time"));
 
     //TODO: add micro code to select container, open lid (waiting for b1)
     //select scrip, then add it, then go back
@@ -346,10 +352,23 @@ void loop()
   }
   case Get_Meds:
   {
-    tft.println("Get meds!");
+    tft.println(F("Get meds!"));
 
     // TODO: if meds available, dispense and show remaining count
     // else display time for next dispensing
+    bool dispensed = false;
+    for (int i = 0; i < 3; i++)
+    {
+      if (availableMeds[i] & (1 << currentUser->UserId))
+      {
+        dispenseMedication(i);
+        dispensed = true;
+      }
+    }
+    if (!dispensed)
+    {
+      tft.print(F("You have no medication available at this time."));
+    }
     while (1)
     {
       // go back to main menu after all that stuff happens
@@ -363,7 +382,7 @@ void loop()
   }
   case Add_Scrips:
   {
-    tft.println("Add scrips! Follow the instructions");
+    tft.println(F("Add scrips! Follow the instructions"));
     while (1)
     {
       // TODO: micro-code to capture all of the inputs, buttons 2 and 3
@@ -381,77 +400,91 @@ void loop()
 
 void buzz()
 {
-  tft.println("BEEP");
+  tft.println(F("BEEP"));
 }
 
 void showWelcomeScreen()
 {
   tft.setTextColor(ILI9341_WHITE);
   tft.setTextSize(3);
-  tft.println("    WELCOME TO");
-  tft.print("   PHARM");
+  tft.println(F("    WELCOME TO"));
+  tft.print(F("   PHARM"));
   tft.setTextColor(ILI9341_RED);
-  tft.print("-");
+  tft.print(F("-"));
   tft.setTextColor(ILI9341_WHITE);
-  tft.println("ASSIST");
+  tft.println(F("ASSIST"));
   tft.println();
   tft.setTextColor(ILI9341_MAROON);
   tft.setTextSize(2);
-  tft.println(" Press Button 1");
-  tft.println(" to authenticate yourself.");
+  tft.println(F(" Press Button 1"));
+  tft.println(F(" to authenticate yourself."));
   delay(4000);
   return;
 }
 
 void showMainMenu()
 {
-  tft.setTextColor(ILI9341_MAROON); tft.setTextSize(3);
-  tft.println("  \t\tMAIN MENU\t\t\n");
-  tft.setTextColor(ILI9341_WHITE); tft.setTextSize(2);
-  tft.println(" 1) Meds menu\n 2) User menu\n 3) Log out"); // Note: tft handles \n characters, so this will work.
+  tft.setTextColor(ILI9341_MAROON);
+  tft.setTextSize(3);
+  tft.println(F("  \t\tMAIN MENU\t\t\n"));
+  tft.setTextColor(ILI9341_WHITE);
+  tft.setTextSize(2);
+  tft.println(F(" 1) Meds menu\n 2) User menu\n 3) Log out")); // Note: tft handles \n characters, so this will work.
   delay(4000);
 }
 
 void showUserMenu1()
 {
-  tft.setTextColor(ILI9341_MAROON); tft.setTextSize(3);
-  tft.println("   \tUSER MENU\t\n");
-  tft.setTextColor(ILI9341_WHITE); tft.setTextSize(2);
-  tft.println(" 1) Add user\n 2) Remove user\n 3) More options");
+  tft.setTextColor(ILI9341_MAROON);
+  tft.setTextSize(3);
+  tft.println(F("   \tUSER MENU\t\n"));
+  tft.setTextColor(ILI9341_WHITE);
+  tft.setTextSize(2);
+  tft.println(F(" 1) Add user\n 2) Remove user\n 3) More options"));
   delay(4000);
 }
 
 void showUserMenu2()
 {
-  tft.setTextColor(ILI9341_MAROON); tft.setTextSize(3);
-  tft.println(" \tUSER MENU cont\t\n");
-  tft.setTextColor(ILI9341_WHITE); tft.setTextSize(2);
-  tft.println(" 1) Elevate user \n 2) Back to main menu");
+  tft.setTextColor(ILI9341_MAROON);
+  tft.setTextSize(3);
+  tft.println(F(" \tUSER MENU cont\t\n"));
+  tft.setTextColor(ILI9341_WHITE);
+  tft.setTextSize(2);
+  tft.println(F(" 1) Elevate user \n 2) Back to main menu"));
   delay(4000);
 }
 
 void showAuthenticateScreen()
 {
-  tft.setTextColor(ILI9341_MAROON); tft.setTextSize(3);
-  tft.println("  \tAUTHENTICATE\t\n");
-  tft.setTextColor(ILI9341_WHITE); tft.setTextSize(2);
-  tft.println(" Please place your finger\nto authenticate yourself.");
+  tft.setTextColor(ILI9341_MAROON);
+  tft.setTextSize(3);
+  tft.println(F("  \tAUTHENTICATE\t\n"));
+  tft.setTextColor(ILI9341_WHITE);
+  tft.setTextSize(2);
+  tft.println(F(" Please place your finger\nto authenticate yourself."));
 }
 
-void showMedsMenu1() {
-  tft.setTextColor(ILI9341_MAROON); tft.setTextSize(3);
-  tft.println("   \tMEDS MENU\t\n");
-  tft.setTextColor(ILI9341_WHITE); tft.setTextSize(2);  
-  tft.println(" 1) Get meds\n 2) Add perscription\n 3) More options");
+void showMedsMenu1()
+{
+  tft.setTextColor(ILI9341_MAROON);
+  tft.setTextSize(3);
+  tft.println(F("   \tMEDS MENU\t\n"));
+  tft.setTextColor(ILI9341_WHITE);
+  tft.setTextSize(2);
+  tft.println(F(" 1) Get meds\n 2) Add perscription\n 3) More options"));
   delay(4000);
 }
 
-void showMedsMenu2() {
-  tft.setTextColor(ILI9341_MAROON); tft.setTextSize(3);
-  tft.println(" \tMEDS MENU cont\t\n");
-  
-  tft.setTextColor(ILI9341_WHITE); tft.setTextSize(2);  
-  tft.println(" 1) Supply mode\n 2) Main menu");
+void showMedsMenu2()
+{
+  tft.setTextColor(ILI9341_MAROON);
+  tft.setTextSize(3);
+  tft.println(F(" \tMEDS MENU cont\t\n"));
+
+  tft.setTextColor(ILI9341_WHITE);
+  tft.setTextSize(2);
+  tft.println(F(" 1) Supply mode\n 2) Main menu"));
   delay(4000);
 }
 
@@ -460,7 +493,7 @@ User *getUserFromId(userIdType userId)
   for (int i = 0; i < numUsers; i++)
   {
     User *user = UserList + i;
-    if (user->getUserId() == userId)
+    if (user->UserId == userId)
       return user;
   }
   return nullptr;
@@ -471,7 +504,7 @@ User *getUserFromPrint(fingerIdType fingerprint)
   for (int i = 0; i < numUsers; i++)
   {
     User *user = UserList + i;
-    if (user->getFingerprint() == fingerprint)
+    if (user->Fingerprint == fingerprint)
       return user;
   }
   return nullptr;
@@ -485,13 +518,13 @@ userIdType addUser(char *name, fingerIdType fingerprint)
   }
   User newUser = User(name, fingerprint);
   UserList[numUsers] = (newUser);
-  return newUser.getUserId();
+  return newUser.UserId;
 }
 
 bool removeUser(int userId, fingerIdType fingerprint)
 {
   User *admin = getUserFromPrint(fingerprint);
-  if (admin == nullptr || !admin->isTrusted())
+  if (admin == nullptr || !admin->Trusted)
     return false;
   else
   {
@@ -499,7 +532,7 @@ bool removeUser(int userId, fingerIdType fingerprint)
     for (int i = 0; i < numUsers; i++)
     {
       User *user = UserList + i;
-      if (user->getFingerprint() == fingerprint)
+      if (user->Fingerprint == fingerprint)
       {
         swap = true;
       }
@@ -547,7 +580,44 @@ bool addPrescription(User *user, Medication *meds)
   return true;
 }
 
+// void alertUser(Medication *meds)
+// {
+//   // std::cout << "Time for medication: " << meds->getName() << std::endl;
+// }
+
+void dispenseMedication(int containerNum)
+{
+  return;
+}
+
+void revokeMeds(int id)
+{
+  availableMeds[id / 10] &= ~(1 << id % 10);
+}
+
 void alertUser(Medication *meds)
 {
-  // std::cout << "Time for medication: " << meds->getName() << std::endl;
+  Serial.print(meds->Name);
+  Serial.println(F(" is ready."));
+  for (int i = 0; i < MAX_USERS; i++)
+  {
+    for (int j = 0; j < 3; j++)
+    {
+      if (UserList[i].Prescriptions[j].UniqueId == meds->UniqueId)
+      {
+        availableMeds[meds->ContainerNum] |= (1 << UserList[i].UserId);
+        ttimer.setTimeout(1800000, revokeMeds, meds->ContainerNum * 10 + UserList[i].UserId);
+      }
+    }
+  }
+}
+
+void createAlert(Medication *meds)
+{
+  ttimer.setTimer(meds->Frequency, alertUser, meds, 10);
+}
+
+void setupAlert(Medication *meds)
+{
+  ttimer.setTimeout(meds->TimeOfDay, createAlert, meds);
 }

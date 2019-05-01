@@ -17,10 +17,26 @@
 // although there is little point in doing so.
 SimpleTimer ttimer;
 
+void revokeMeds(Medication *meds, int userId)
+{
+    availableMeds[meds->ContainerNum] &= ~(1 << UserList[i].UserId);
+}
+
 void alertUser(Medication *meds)
 {
     Serial.print(meds->getName());
     Serial.println(" is ready.");
+    for (i = 0; i < MAX_USERS; i++)
+    {
+        for (j = 0; j < 3; j++)
+        {
+            if (UserList[i].Prescriptions[j].UniqueId == meds->UniqueId)
+            {
+                availableMeds[meds->ContainerNum] |= (1 << UserList[i].UserId);
+                ttimer.setTimeout(1800000, revokeMeds, meds, UserList[i].UserId);
+            }
+        }
+    }
 }
 
 void createAlert(Medication *meds)
