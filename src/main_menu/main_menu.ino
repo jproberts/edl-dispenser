@@ -32,15 +32,15 @@ Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC);
 #define MAX_USERS 8
 #define MAX_MEDICATIONS 24
 
-int numUsers;
-int numMeds;
+uint8_t numUsers;
+uint8_t numMeds;
 User *UserList;
 Medication *MedicationList;
 char availableMeds[3];
 
 userIdType addUser(char *name, fingerIdType fingerprint);
-bool removeUser(int userId, fingerIdType fingerprint);
-bool elevateUser(int userId, fingerIdType fingerprint);
+bool removeUser(uint8_t userId, fingerIdType fingerprint);
+bool elevateUser(uint8_t userId, fingerIdType fingerprint);
 User *getUserFromId(userIdType userId);
 User *getUserFromPrint(fingerIdType fingerprint);
 bool addPrescription(User *user, Medication *meds);
@@ -49,7 +49,7 @@ void alertUser(Medication *meds);
 
 SimpleTimer ttimer;
 
-int shiftReg[8];
+uint8_t shiftReg[8];
 /* shiftReg
   0: Hall1
   1: Hall2
@@ -357,7 +357,7 @@ void loop()
     // TODO: if meds available, dispense and show remaining count
     // else display time for next dispensing
     bool dispensed = false;
-    for (int i = 0; i < 3; i++)
+    for (uint8_t i = 0; i < 3; i++)
     {
       if (availableMeds[i] & (1 << currentUser->UserId))
       {
@@ -490,7 +490,7 @@ void showMedsMenu2()
 
 User *getUserFromId(userIdType userId)
 {
-  for (int i = 0; i < numUsers; i++)
+  for (uint8_t i = 0; i < numUsers; i++)
   {
     User *user = UserList + i;
     if (user->UserId == userId)
@@ -501,7 +501,7 @@ User *getUserFromId(userIdType userId)
 
 User *getUserFromPrint(fingerIdType fingerprint)
 {
-  for (int i = 0; i < numUsers; i++)
+  for (uint8_t i = 0; i < numUsers; i++)
   {
     User *user = UserList + i;
     if (user->Fingerprint == fingerprint)
@@ -521,7 +521,7 @@ userIdType addUser(char *name, fingerIdType fingerprint)
   return newUser.UserId;
 }
 
-bool removeUser(int userId, fingerIdType fingerprint)
+bool removeUser(uint8_t userId, fingerIdType fingerprint)
 {
   User *admin = getUserFromPrint(fingerprint);
   if (admin == nullptr || !admin->Trusted)
@@ -529,7 +529,7 @@ bool removeUser(int userId, fingerIdType fingerprint)
   else
   {
     bool swap = false;
-    for (int i = 0; i < numUsers; i++)
+    for (uint8_t i = 0; i < numUsers; i++)
     {
       User *user = UserList + i;
       if (user->Fingerprint == fingerprint)
@@ -549,7 +549,7 @@ bool removeUser(int userId, fingerIdType fingerprint)
   }
 }
 
-bool elevateUser(int userId, fingerIdType fingerprint)
+bool elevateUser(uint8_t userId, fingerIdType fingerprint)
 {
   User *admin = getUserFromPrint(fingerprint);
   User *user = getUserFromId(userId);
@@ -585,12 +585,12 @@ bool addPrescription(User *user, Medication *meds)
 //   // std::cout << "Time for medication: " << meds->getName() << std::endl;
 // }
 
-void dispenseMedication(int containerNum)
+void dispenseMedication(uint8_t containerNum)
 {
   return;
 }
 
-void revokeMeds(int id)
+void revokeMeds(uint8_t id)
 {
   availableMeds[id / 10] &= ~(1 << id % 10);
 }
@@ -599,9 +599,9 @@ void alertUser(Medication *meds)
 {
   Serial.print(meds->Name);
   Serial.println(F(" is ready."));
-  for (int i = 0; i < MAX_USERS; i++)
+  for (uint8_t i = 0; i < MAX_USERS; i++)
   {
-    for (int j = 0; j < 3; j++)
+    for (uint8_t j = 0; j < 3; j++)
     {
       if (UserList[i].Prescriptions[j].UniqueId == meds->UniqueId)
       {
