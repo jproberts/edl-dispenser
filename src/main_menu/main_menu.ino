@@ -1,25 +1,31 @@
-//todo: please clean this up im rusty on this and dont wanna think about it
+/* TODO:
+ *  - Incorporate rotary:
+ *    1) Port over
+ *    2) Write more
+ *  - Fingerprint:
+ *    1) Double check fps.Open()
+ *  - Readshiftregister
+ *  - Before deploying:
+ *    1) Switch components to proper pins
+ *    2) More optimizations perhaps
+ *    3) Convert this ino to cpp
+ */
+
 #include "pin_definitions.h"
 #include "FPS_GT511C3.h"
 #include "SPI.h"
 #include "Adafruit_GFX.h"
 #include "Adafruit_ILI9341.h"
-// #include "SoftwareSerial.h"
-//TODO: i think we dont need this?
 #include "medication.h"
 #include "user.h"
 #include "SimpleTimer.h"
-//how do you include system.h or should we like redo it idk
-// use your judgment i trust you
 
 /* DISPLAY */
-// For the Adafruit shield, these are the default.
 #define TFT_DC 9
 #define TFT_CS 10
 
 // Use hardware SPI (on Uno, #13, #12, #11) and the above for CS/DC
 Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC);
-// If using the breakout, change pins as desired
 //Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC, TFT_MOSI, TFT_CLK, TFT_RST, TFT_MISO);
 
 /* SHIFT REGISTER */
@@ -28,7 +34,6 @@ Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC);
 #define BUTTON_THREE (ROT_SWITCH_PIN & (1 << ROT_SWITCH_pin))
 
 /* SYSTEM */
-
 #define MAX_USERS 8
 #define MAX_MEDICATIONS 24
 
@@ -60,10 +65,6 @@ uint8_t shiftReg[8];
 */
 
 /* FINGERPRINT SENSOR */
-
-//TODO: plz put the right pins here, james
-// I think this should work. I might have them flipped. 26 is FPS_TX, 25 is FPS_RX
-// Switched to dummy values to make sure there's no overlap with display tests.
 FPS_GT511C3 fps(4, 5);
 
 enum States
@@ -83,22 +84,23 @@ enum States
   Add_Scrips
 };
 
-enum States system_state = Meds_Menu_2;
+enum States system_state = Welcome;
 
 void setup()
 {
   Serial.begin(9600);
-  // fps.Open(); // send serial command to initialize fps
-  tft.begin(); // Initialize display.
-  // Set SHIFTREG and ROT_SWITCH as inputs.
+  //fps.Open();
+  tft.begin();
+  // Set SHIFTREG, ROT_SWITCH, ROTA, and ROTB as inputs.
   DDRD &= !(1 << SHIFTREG_Q_pin);
   DDRD &= !(1 << ROT_SWITCH_pin);
+  DDRD &= !(1 << ROTA_pin);
+  DDRD &= !(1 << ROTB_pin);
   tft.setRotation(1);
   tft.fillScreen(ILI9341_BLACK);
   tft.setCursor(0, 0);
   tft.setTextColor(ILI9341_WHITE);
   tft.setTextSize(1);
-  //testWelcomeScreen();
 }
 
 User *currentUser = NULL;
@@ -111,8 +113,8 @@ void loop()
   tft.setTextColor(ILI9341_WHITE);
   tft.setTextSize(2);
   tft.println();
-  //TODO: hi pls get this to work, yay!
-  //readShiftRegister(shiftReg);
+
+  // TODO: readShiftRegister(shiftReg);
   switch (system_state)
   {
   case Welcome:
@@ -156,12 +158,10 @@ void loop()
     tft.println(F("Add user! Follow the instructions"));
     while (1)
     {
-      // TODO: micro-code to capture all of the inputs, buttons 2 and 3
-      // don't forget to like... get their fingerprint
+      // Insert microcode here
 
       if (BUTTON_ONE == 0)
       {
-        //TODO: look at the diagram, I think I meant to have b1 going to main menu, not authenticate
         system_state = Main_Menu;
         break;
       }
@@ -210,8 +210,6 @@ void loop()
     break;
   }
 
-  //TODO: when do you want to fps.SetLED(false), in the welcome menu or at the end of this?
-  // I put it after the finger press is recognized.
   case Authenticate:
   {
     showAuthenticateScreen();
@@ -227,7 +225,7 @@ void loop()
 
         if (id < 200)
         {
-          //TODO: get this to work
+ 
           currentUser = getUserFromId(id);
           if (currentUser) // Checks that user is registered
           {
@@ -237,14 +235,14 @@ void loop()
           }
           else
           {
-            tft.println(F("Access denied. You're being sent to jail, don't collect $200"));
+            tft.println(F("Access denied"));
             buzz();
             system_state = Welcome;
           }
         }
         else
         {
-          tft.println(F("Finger not found. You're being sent to jail, don't collect $200"));
+          tft.println(F("Finger not found"));
           buzz();
           system_state = Welcome;
           break;
@@ -263,9 +261,8 @@ void loop()
     tft.println(F("Scroll through this list of users and press down on the rotary encoder."));
     while (1)
     {
-      // TODO: add rotary code to actually scroll through the users
+      // Insert microcode here
 
-      //then once you pressed it, beep and leave
       if (BUTTON_THREE == 0)
       {
         buzz();
@@ -280,9 +277,8 @@ void loop()
     tft.println(F("Scroll through this list of users and press down on the rotary encoder."));
     while (1)
     {
-      // TODO: add rotary code to actually scroll through the users
-
-      //then once you pressed it, beep and leave
+      // Insert microcode here
+      
       if (BUTTON_THREE == 0)
       {
         buzz();
@@ -337,8 +333,8 @@ void loop()
   {
     tft.println(F("Supply mode time"));
 
-    //TODO: add micro code to select container, open lid (waiting for b1)
-    //select scrip, then add it, then go back
+    // Insert micro code here
+    
     while (1)
     {
       if (BUTTON_TWO == 0)
@@ -354,8 +350,6 @@ void loop()
   {
     tft.println(F("Get meds!"));
 
-    // TODO: if meds available, dispense and show remaining count
-    // else display time for next dispensing
     bool dispensed = false;
     for (uint8_t i = 0; i < 3; i++)
     {
@@ -371,7 +365,6 @@ void loop()
     }
     while (1)
     {
-      // go back to main menu after all that stuff happens
       if (BUTTON_ONE == 0)
       {
         system_state = Main_Menu;
@@ -385,7 +378,7 @@ void loop()
     tft.println(F("Add scrips! Follow the instructions"));
     while (1)
     {
-      // TODO: micro-code to capture all of the inputs, buttons 2 and 3
+      // Insert micro code here
 
       if (BUTTON_ONE == 0)
       {
@@ -579,11 +572,6 @@ bool addPrescription(User *user, Medication *meds)
 
   return true;
 }
-
-// void alertUser(Medication *meds)
-// {
-//   // std::cout << "Time for medication: " << meds->getName() << std::endl;
-// }
 
 void dispenseMedication(uint8_t containerNum)
 {
