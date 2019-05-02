@@ -1,20 +1,15 @@
-//todo: please clean this up im rusty on this and dont wanna think about it
 #include "pin_definitions.h"
 #include "FPS_GT511C3.h"
 #include "SPI.h"
 #include "Adafruit_GFX.h"
 #include "Adafruit_ILI9341.h"
 #include <util/delay.h>
-// #include "SoftwareSerial.h"
-//TODO: i think we dont need this?
 #include "medication.h"
 #include "user.h"
 #include "SimpleTimer.h"
-//how do you include system.h or should we like redo it idk
-// use your judgment i trust you
 
 /* DISPLAY */
-// For the Adafruit shield, these are the default.
+// TODO: Find out what these should be in avr land
 #define TFT_DC 9
 #define TFT_CS 10
 
@@ -62,9 +57,7 @@ uint8_t shiftReg[8];
 
 /* FINGERPRINT SENSOR */
 
-//TODO: plz put the right pins here, james
-// I think this should work. I might have them flipped. 26 is FPS_TX, 25 is FPS_RX
-// Switched to dummy values to make sure there's no overlap with display tests.
+// TODO: put the right pins here
 FPS_GT511C3 fps(4, 5);
 
 enum States
@@ -84,12 +77,12 @@ enum States
   Add_Scrips
 };
 
-enum States system_state = Meds_Menu_2;
+enum States system_state = Welcome;
 
 void setup()
 {
   Serial.begin(9600);
-  // fps.Open(); // send serial command to initialize fps
+  // fps.Open(); // TODO: uncomment
   tft.begin(); // Initialize display.
   // Set SHIFTREG and ROT_SWITCH as inputs.
   DDRD &= !(1 << SHIFTREG_Q_pin);
@@ -99,7 +92,6 @@ void setup()
   tft.setCursor(0, 0);
   tft.setTextColor(ILI9341_WHITE);
   tft.setTextSize(1);
-  //testWelcomeScreen();
 }
 
 User *currentUser = NULL;
@@ -112,8 +104,8 @@ void loop()
   tft.setTextColor(ILI9341_WHITE);
   tft.setTextSize(2);
   tft.println();
-  //TODO: hi pls get this to work, yay!
-  //readShiftRegister(shiftReg);
+  // readShiftRegister(shiftReg); 
+  // TODO: uncomment this
   switch (system_state)
   {
   case Welcome:
@@ -162,7 +154,6 @@ void loop()
 
       if (BUTTON_ONE == 0)
       {
-        //TODO: look at the diagram, I think I meant to have b1 going to main menu, not authenticate
         system_state = Main_Menu;
         break;
       }
@@ -211,15 +202,12 @@ void loop()
     break;
   }
 
-  //TODO: when do you want to fps.SetLED(false), in the welcome menu or at the end of this?
-  // I put it after the finger press is recognized.
   case Authenticate:
   {
     showAuthenticateScreen();
-    fps.SetLED(true); // turn on LED so fps can see fingerprint
+    fps.SetLED(true);
     while (1)
     {
-      // Identify fingerprint
       if (fps.IsPressFinger())
       {
         fps.SetLED(false);
@@ -228,7 +216,6 @@ void loop()
 
         if (id < 200)
         {
-          //TODO: get this to work
           currentUser = getUserFromId(id);
           if (currentUser) // Checks that user is registered
           {
@@ -266,7 +253,6 @@ void loop()
     {
       // TODO: add rotary code to actually scroll through the users
 
-      //then once you pressed it, beep and leave
       if (BUTTON_THREE == 0)
       {
         buzz();
@@ -283,7 +269,6 @@ void loop()
     {
       // TODO: add rotary code to actually scroll through the users
 
-      //then once you pressed it, beep and leave
       if (BUTTON_THREE == 0)
       {
         buzz();
@@ -401,6 +386,7 @@ void loop()
 
 void buzz()
 {
+  // TODO: make a tone
   tft.println(F("BEEP"));
 }
 
@@ -563,28 +549,8 @@ bool elevateUser(uint8_t userId, fingerIdType fingerprint)
 
 bool addPrescription(User *user, Medication *meds)
 {
-  // time_t current_time = time(nullptr);
-
-  // int delay = meds->getTimeOfDay() - current_time;
-  // int interval = meds->getFrequency();
-
-  // SimpleTimer t = SimpleTimer();
-  // // cout << "Starting timeout" << endl;
-  // // cout << "Found interval: " << interval << endl;
-  // auto repeat = [](SimpleTimer t, int interval, Medication *meds) {
-  // 	t.setInterval(alertUser,
-  // 				  interval, meds);
-  // };
-
-  // t.setTimeout(repeat, delay, t, interval, meds);
-
   return true;
 }
-
-// void alertUser(Medication *meds)
-// {
-//   // std::cout << "Time for medication: " << meds->getName() << std::endl;
-// }
 
 void dispenseMedication(uint8_t containerNum)
 {
