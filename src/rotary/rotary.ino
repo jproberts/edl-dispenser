@@ -27,13 +27,11 @@ void loop()  {
   if (newPos != position && newPos >= 0) {
     position = newPos;
   }
-  
-  current_letter = letters[position];
 
   if (millis() - prevTime > debounce) {
     if (digitalRead(rotary_button) == LOW) {
       current_index++;
-      my_name[current_index % name_length] = current_letter;
+      my_name[current_index % name_length] = letters[position];
       Serial.println(my_name);
       prevTime = millis();  
     }

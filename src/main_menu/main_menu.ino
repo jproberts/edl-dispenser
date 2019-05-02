@@ -7,11 +7,23 @@
 #include "medication.h"
 #include "user.h"
 #include "SimpleTimer.h"
+#include <Encoder.h>
 
 /* DISPLAY */
 // TODO: Find out what these should be in avr land
 #define TFT_DC 9
 #define TFT_CS 10
+
+/* ROTARY */
+#define debounce 200 //milliseconds
+#define ENCODER_DO_NOT_USE_INTERRUPTS
+char my_name[6] = {'j', 'a', 'm', 'e', 's', '\0'};
+char letters[] = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h',
+  'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't',
+  'u', 'v', 'w', 'x', 'y', 'z'}; // TODO: do i have to null terminate this or is it ok
+uint8_t current_index;
+unsigned long prevTime, position;
+Encoder rotary(ROTA_pin, ROTB_pin); //TODO: map from avr land again
 
 // Use hardware SPI (on Uno, #13, #12, #11) and the above for CS/DC
 Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC);
@@ -87,6 +99,9 @@ void setup()
   // Set SHIFTREG and ROT_SWITCH as inputs.
   DDRD &= !(1 << SHIFTREG_Q_pin);
   DDRD &= !(1 << ROT_SWITCH_pin);
+  // Also do that for rotary channels A and B.
+  DDRD &= !(1 << ROTA_pin);
+  DDRD &= !(1 << ROTB_pin);
   tft.setRotation(1);
   tft.fillScreen(ILI9341_BLACK);
   tft.setCursor(0, 0);
@@ -147,17 +162,35 @@ void loop()
   case Add_User:
   {
     tft.println(F("Add user! Follow the instructions"));
+    // TODO: add more instructions i guess
     while (1)
     {
-      // TODO: micro-code to capture all of the inputs, buttons 2 and 3
-      // don't forget to like... get their fingerprint
+      // Once you press button two, you're done with your name
+      while(BUTTON_TWO == 1) {
+          unsigned long newPos = abs(rotary.read() % 26);
+          if (newPos != position && newPos >= 0) {
+            position = newPos;
+          }
 
-      if (BUTTON_ONE == 0)
-      {
-        system_state = Main_Menu;
-        break;
-      }
-    }
+          if (millis() - prevTime > debounce) {
+            if (BUTTON_THREE == 0) {
+              current_index++;
+              my_name[current_index % 6] = letters[position];
+              tft.println(my_name); // TODO: check to see if this looks good
+              prevTime = millis();  
+           }
+        }    
+      }  
+    
+      // TODO: Enroll your fingerprint
+
+    // Press button one to get out of here
+    if (BUTTON_ONE == 0)
+    {
+      system_state = Main_Menu;
+      break;
+     }
+  }
     break;
   }
   case User_Menu_1:
@@ -339,6 +372,7 @@ void loop()
   case Get_Meds:
   {
     tft.println(F("Get meds!"));
+    // Todo: move this stuff inside the while, otherwise it's going to happen a million times
 
     // TODO: if meds available, dispense and show remaining count
     // else display time for next dispensing
