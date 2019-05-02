@@ -4,6 +4,7 @@
 #include "SPI.h"
 #include "Adafruit_GFX.h"
 #include "Adafruit_ILI9341.h"
+#include <util/delay.h>
 // #include "SoftwareSerial.h"
 //TODO: i think we dont need this?
 #include "medication.h"
@@ -254,7 +255,7 @@ void loop()
       {
         tft.println(F("Please press finger"));
       }
-      delay(100);
+      _delay_ms(100);
     }
     break;
   }
@@ -418,7 +419,7 @@ void showWelcomeScreen()
   tft.setTextSize(2);
   tft.println(F(" Press Button 1"));
   tft.println(F(" to authenticate yourself."));
-  delay(4000);
+  _delay_ms(4000);
   return;
 }
 
@@ -430,7 +431,7 @@ void showMainMenu()
   tft.setTextColor(ILI9341_WHITE);
   tft.setTextSize(2);
   tft.println(F(" 1) Meds menu\n 2) User menu\n 3) Log out")); // Note: tft handles \n characters, so this will work.
-  delay(4000);
+  _delay_ms(4000);
 }
 
 void showUserMenu1()
@@ -441,7 +442,7 @@ void showUserMenu1()
   tft.setTextColor(ILI9341_WHITE);
   tft.setTextSize(2);
   tft.println(F(" 1) Add user\n 2) Remove user\n 3) More options"));
-  delay(4000);
+  _delay_ms(4000);
 }
 
 void showUserMenu2()
@@ -452,7 +453,7 @@ void showUserMenu2()
   tft.setTextColor(ILI9341_WHITE);
   tft.setTextSize(2);
   tft.println(F(" 1) Elevate user \n 2) Back to main menu"));
-  delay(4000);
+  _delay_ms(4000);
 }
 
 void showAuthenticateScreen()
@@ -473,7 +474,7 @@ void showMedsMenu1()
   tft.setTextColor(ILI9341_WHITE);
   tft.setTextSize(2);
   tft.println(F(" 1) Get meds\n 2) Add perscription\n 3) More options"));
-  delay(4000);
+  _delay_ms(4000);
 }
 
 void showMedsMenu2()
@@ -485,7 +486,7 @@ void showMedsMenu2()
   tft.setTextColor(ILI9341_WHITE);
   tft.setTextSize(2);
   tft.println(F(" 1) Supply mode\n 2) Main menu"));
-  delay(4000);
+  _delay_ms(4000);
 }
 
 User *getUserFromId(userIdType userId)
@@ -626,16 +627,16 @@ void openLid()
 {
   SOLENOID_FORWARD_PORT |= (1 << SOLENOID_FORWARD_pin);
   SOLENOID_REVERSE_PORT &= ~(1 << SOLENOID_REVERSE_pin);
-  delay(2); // Delays are all in microseconds, so this should be plenty.
+  _delay_us(10); // Delays are all in microseconds, so this should be plenty.
   SOLENOID_FORWARD_PORT &= ~(1 << SOLENOID_FORWARD_pin);
-  delay(2);
+  _delay_us(10);
 }
 
 void closeLid()
 {
   SOLENOID_REVERSE_PORT |= (1 << SOLENOID_REVERSE_pin);
   SOLENOID_FORWARD_PORT &= ~(1 << SOLENOID_FORWARD_pin);
-  delay(2); // Delays are all in microseconds, so this should be plenty.
+  _delay_us(10); // Delays are all in microseconds, so this should be plenty.
   SOLENOID_REVERSE_PORT &= ~(1 << SOLENOID_REVERSE_pin);
-  delay(2);
+  _delay_us(10);
 }

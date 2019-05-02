@@ -1,6 +1,8 @@
 #ifndef PINDEFS_H
 #define PINDEFS_H
 
+#include <avr/io.h>
+
 /* INTERFACING WITH PINS
  * 
  * PORT_X is used for output. PIN_X is used for input.
