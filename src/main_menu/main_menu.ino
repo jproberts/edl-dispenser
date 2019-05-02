@@ -182,7 +182,62 @@ void loop()
         }    
       }  
     
-      // TODO: Enroll your fingerprint
+      // TODO: Enroll your fingerprint and press button three to end it
+      while(BUTTON_THREE == 1) {
+        fps.SetLED(true);
+        int enrollid = 0;
+        bool usedid = true;
+        while (usedid == true)
+        {
+          usedid = fps.CheckEnrolled(enrollid);
+          if (usedid==true) enrollid++;
+        }
+        fps.EnrollStart(enrollid);
+
+        // enroll
+        tft.println(F("Press finger to Enroll #"));
+        tft.println(enrollid);
+        while(fps.IsPressFinger() == false) delay(100);
+        bool bret = fps.CaptureFinger(true);
+        int iret = 0;
+        if (bret != false)
+        {
+          tft.println("Remove finger");
+          fps.Enroll1(); 
+          while(fps.IsPressFinger() == true) delay(100);
+          tft.println(F("Press same finger again"));
+          while(fps.IsPressFinger() == false) delay(100);
+          bret = fps.CaptureFinger(true);
+          if (bret != false)
+          {
+            tft.println(F("Remove finger"));
+            fps.Enroll2();
+            while(fps.IsPressFinger() == true) delay(100);
+            tft.println("Press same finger yet again");
+            while(fps.IsPressFinger() == false) delay(100);
+            bret = fps.CaptureFinger(true);
+            if (bret != false)
+            {
+              tft.println(F("Remove finger"));
+              iret = fps.Enroll3();
+              if (iret == 0)
+              {
+                tft.println(F("Enrolling Successful"));
+              }
+            else
+            {
+          tft.print(F("Enrolling Failed with error code:"));
+          system_state = Welcome;
+          break;
+        }
+      }
+      else Serial.println(F("Failed to capture third finger"));
+    }
+    else Serial.println(F("Failed to capture second finger"));
+  }
+  else Serial.println(F("Failed to capture first finger"));
+        
+      }
 
     // Press button one to get out of here
     if (BUTTON_ONE == 0)
