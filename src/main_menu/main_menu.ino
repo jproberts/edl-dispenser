@@ -82,7 +82,6 @@ void readShiftReg(uint8_t *reg);
 SimpleTimer ttimer;
 
 uint8_t shiftReg[8];
-<<<<<<< HEAD
 /* shiftReg
   1: Hall1
   2: Hall2
@@ -92,8 +91,6 @@ uint8_t shiftReg[8];
   6: Switch2
   7: UNUSED
 */
-=======
->>>>>>> 32b1327e2ee7f71b7643af9db2f0056fea5dd44b
 
 /* FINGERPRINT SENSOR */
 // AVR TX: 26; Arduino RX: A3
