@@ -1,10 +1,14 @@
-/*
- * Will the compiler be smart enough to understand the actual pin numbers? Or does everything
- * need to be translated to Arduino land?
- * Examples: reading shift register as input
- * 
- * Can't get the shift register to work.
- * cannot bind rvalue '(int)(& shiftReg)' to 'int&'
+/* James: 
+- enroll id thing
+- make sure the screen is erased in the right spots
+- remove user with fingerprint
+- elevate user with fingerprint
+- take care of checking the containers
+Me: 
+- fix the structure of the rotary
+
+- dispense meds hey only the biggest one we need
+-add scrips
  */
 
 #include "pin_definitions.h"
@@ -73,7 +77,7 @@ bool removePrescription(User *user, Medication *meds);
 void alertUser(Medication *meds);
 void createAlert(Medication *meds);
 void initShiftReg();
-void readShiftReg(int &reg);
+void readShiftReg(uint8_t *reg);
 
 SimpleTimer ttimer;
 
@@ -128,7 +132,7 @@ void loop()
   tft.setTextColor(ILI9341_WHITE);
   tft.setTextSize(2);
   tft.println();
-  //readShiftReg(shiftReg); 
+  readShiftReg(shiftReg); 
   switch (system_state)
   {
   case Welcome:
@@ -237,7 +241,7 @@ void loop()
       }
       else tft.println(F("Failed to capture first finger"));
 
-      //TODO: addUser(my_name, enrollid);
+     addUser(my_name, enrollid);
         
   while (1) {
     if (BUTTON_ONE == 0)
@@ -339,14 +343,15 @@ void loop()
     tft.println(F("Scroll through this list of users and press down on button two when you've found who you want."));
 
     while(BUTTON_TWO == 1) {
-      unsigned long newPos = abs(rotary.read() % (MAX_USERS - 1));
+      unsigned long newPos = abs(rotary.read() % numUsers);
       if (newPos != position && newPos >= 0) {
         position = newPos;
       }
       if (millis() - prevTime > debounce) {
         if (BUTTON_THREE == 0) {
           user_to_remove = UserList[position].UserId;
-          tft.println(user_to_remove);
+          // TODO; userId = enrollId
+          tft.println(UserList[position].Name);
           prevTime = millis();
         }
       }
@@ -457,16 +462,23 @@ void loop()
     }
 
     // TODO: I'm missing stuff after you pick the container number. But we'll talk about it
+    /* Loop through medication list to find if any medication is currently in the container.
+     *  Turn container number to -1
+     *  (?) Loop through timers and remove timer for removed medication
+     */
 
     openLid();
     tft.println(F("Put your meds in now... then press button two to close it"));
 
     // Do nothing while button two hasn't been pressed
     while(BUTTON_TWO == 1) {
-      
     }
     
     closeLid();
+
+    // TODO: select prescription. Cycle through medicationlist and pick num meds
+    // This is going to be a rotary thing
+    
     tft.println(F("Press button two to go back to the main menu"));
     while (1)
     {
@@ -489,8 +501,6 @@ void loop()
       if (availableMeds[i] & (1 << currentUser->UserId))
       {
         dispenseMedication(i);
-        // TODO: tidy up... we probably want to decrease the supply
-        tft.println(F("You have some left I guess"));
         dispensed = true;
       }
     }
@@ -514,9 +524,12 @@ void loop()
     tft.println(F("Add scrips! Follow the instructions"));
     while (1)
     {
-      // TODO: micro-code to capture all of the inputs, buttons 2 and 3
-
-      //addPrescription(the, things)
+      // make a new medication object
+      // name
+      // frequency
+      // timeofday
+      // supply
+      // then add it to the list (nummeds, then increase that)
 
       if (BUTTON_ONE == 0)
       {
@@ -699,6 +712,8 @@ bool addPrescription(User *user, Medication *meds)
 
 void dispenseMedication(uint8_t containerNum)
 {
+  // move the motors
+  // after that it's supposed to decrease the supply
   return;
 }
 
@@ -757,7 +772,7 @@ void initShiftReg()
     PL_BAR_PORT |= (1 << PL_BAR_pin);
 }
 
-void readShiftReg(int &reg)
+void readShiftReg(uint8_t *reg)
 {
     // Note: This is doing a serial load to input registers, then shift registers
     // There's also the option to do a parallel load of both at the same time. I'm not sure which to use.
@@ -768,14 +783,14 @@ void readShiftReg(int &reg)
     PL_BAR_PIN &= ~(1 << PL_BAR_pin);
     _delay_us(PULSE_WIDTH);
     PL_BAR_PORT |= (1 << PL_BAR_pin);
-    reg = 0;
+    *reg = 0;
     for (int i = 7; i >= 0; i++)
     {
         SHCP_PORT |= (1 << SHCP_pin);
         _delay_us(SETTLE_TIME);
         if ((SHIFTREG_Q_PIN & 1 << SHIFTREG_Q_pin) != 0)
         {
-            reg |= (1 << i);
+            *reg |= (1 << i);
         }
         SHCP_PORT &= ~(1 << SHCP_pin);
         _delay_us(SETTLE_TIME);
