@@ -52,12 +52,13 @@ SimpleTimer ttimer;
 
 uint8_t shiftReg[8];
 /* shiftReg
-  0: Hall1
-  1: Hall2
-  2: Hall3
-  3: UNUSED
-  4: Switch1
-  5: Switch2
+  1: Hall1
+  2: Hall2
+  3: Hall3
+  4: UNUSED
+  5: Switch1
+  6: Switch2
+  7: UNUSED
 */
 
 /* FINGERPRINT SENSOR */
