@@ -9,9 +9,7 @@ class Medication
 	int TimeOfDay;
 	char const *DoctorContactInfo;
 	int Supply;
-	// enum Notifications;
 	int UniqueId;
-	// User* Recipients // Hoping we don't need this.
 	int ContainerNum;
 
 	Medication() : Name("Vitamins"), Frequency(1000), TimeOfDay(5000), Supply(15), ContainerNum(0) {}

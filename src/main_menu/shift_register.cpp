@@ -1,3 +1,4 @@
+/*
 #include "pin_definitions.h"
 #include <util/delay.h>
 
@@ -35,3 +36,4 @@ void readShiftReg(int &reg)
         _delay_us(SETTLE_TIME);
     }
 }
+*/
