@@ -1,3 +1,12 @@
+/*
+ * Will the compiler be smart enough to understand the actual pin numbers? Or does everything
+ * need to be translated to Arduino land?
+ * Examples: reading shift register as input
+ * 
+ * Can't get the shift register to work.
+ * cannot bind rvalue '(int)(& shiftReg)' to 'int&'
+ */
+
 #include "pin_definitions.h"
 #include "FPS_GT511C3.h"
 #include "SPI.h"
@@ -9,34 +18,42 @@
 #include "SimpleTimer.h"
 #include <Encoder.h>
 
+/* TIMING */
+#define PULSE_WIDTH 20
+#define WAIT_TIME 20
+#define SETTLE_TIME 10
+#define CLK_PERIOD 50 // TODO: This should be the clock period of SHCP.
+
 /* DISPLAY */
-// TODO: Find out what these should be in avr land
-#define TFT_DC 9
+// AVR TFT_DC: 6; Arduino TFT_DC: dp4
+// AVR TFT_CS: 16; Arduino TFT_CS: dp10
+#define TFT_DC 4
 #define TFT_CS 10
 
 /* ROTARY */
-#define debounce 200 //milliseconds
+#define debounce 200 // in milliseconds
 #define ENCODER_DO_NOT_USE_INTERRUPTS
-char my_name[6] = {'j', 'a', 'm', 'e', 's', '\0'};
+char my_name[6] = {'s', 'a', 'r', 'a', 'h', '\0'};
 char letters[] = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h',
   'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't',
-  'u', 'v', 'w', 'x', 'y', 'z'}; // TODO: do i have to null terminate this or is it ok
-uint8_t current_index;
+  'u', 'v', 'w', 'x', 'y', 'z'};
+uint8_t current_index, user_to_remove, user_to_elevate, container_picked;
 unsigned long prevTime, position;
-Encoder rotary(ROTA_pin, ROTB_pin); //TODO: map from avr land again
+// AVR ROTA: 23; Arduino ROTA: A0
+// AVR ROTB: 24; Arduino ROTB: A1
+Encoder rotary(A0, A1);
 
 // Use hardware SPI (on Uno, #13, #12, #11) and the above for CS/DC
 Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC);
-// If using the breakout, change pins as desired
-//Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC, TFT_MOSI, TFT_CLK, TFT_RST, TFT_MISO);
 
 /* SHIFT REGISTER */
 #define BUTTON_ONE shiftReg[4]
 #define BUTTON_TWO shiftReg[5]
+
+// TODO: can we keep it like this or should we do the Arduino equivalent here
 #define BUTTON_THREE (ROT_SWITCH_PIN & (1 << ROT_SWITCH_pin))
 
 /* SYSTEM */
-
 #define MAX_USERS 8
 #define MAX_MEDICATIONS 24
 
@@ -46,7 +63,7 @@ User *UserList;
 Medication *MedicationList;
 char availableMeds[3];
 
-userIdType addUser(char *name, fingerIdType fingerprint);
+userIdType addUser(char name[6], fingerIdType fingerprint);
 bool removeUser(uint8_t userId, fingerIdType fingerprint);
 bool elevateUser(uint8_t userId, fingerIdType fingerprint);
 User *getUserFromId(userIdType userId);
@@ -54,23 +71,18 @@ User *getUserFromPrint(fingerIdType fingerprint);
 bool addPrescription(User *user, Medication *meds);
 bool removePrescription(User *user, Medication *meds);
 void alertUser(Medication *meds);
+void createAlert(Medication *meds);
+void initShiftReg();
+void readShiftReg(int &reg);
 
 SimpleTimer ttimer;
 
 uint8_t shiftReg[8];
-/* shiftReg
-  0: Hall1
-  1: Hall2
-  2: Hall3
-  3: UNUSED
-  4: Switch1
-  5: Switch2
-*/
 
 /* FINGERPRINT SENSOR */
-
-// TODO: put the right pins here
-FPS_GT511C3 fps(4, 5);
+// AVR TX: 26; Arduino RX: A3
+// AVR RX: 25; Arduino TX: A2
+FPS_GT511C3 fps(A3, A2);
 
 enum States
 {
@@ -94,14 +106,11 @@ enum States system_state = Welcome;
 void setup()
 {
   Serial.begin(9600);
-  // fps.Open(); // TODO: uncomment
+  fps.Open();
   tft.begin(); // Initialize display.
-  // Set SHIFTREG and ROT_SWITCH as inputs.
+  // Set the pins as inputs
   DDRD &= !(1 << SHIFTREG_Q_pin);
   DDRD &= !(1 << ROT_SWITCH_pin);
-  // Also do that for rotary channels A and B.
-  DDRD &= !(1 << ROTA_pin);
-  DDRD &= !(1 << ROTB_pin);
   tft.setRotation(1);
   tft.fillScreen(ILI9341_BLACK);
   tft.setCursor(0, 0);
@@ -119,8 +128,7 @@ void loop()
   tft.setTextColor(ILI9341_WHITE);
   tft.setTextSize(2);
   tft.println();
-  // readShiftRegister(shiftReg); 
-  // TODO: uncomment this
+  //readShiftReg(shiftReg); 
   switch (system_state)
   {
   case Welcome:
@@ -161,85 +169,77 @@ void loop()
   }
   case Add_User:
   {
-    tft.println(F("Add user! Follow the instructions"));
-    // TODO: add more instructions i guess
-    while (1)
-    {
-      // Once you press button two, you're done with your name
-      while(BUTTON_TWO == 1) {
-          unsigned long newPos = abs(rotary.read() % 26);
-          if (newPos != position && newPos >= 0) {
-            position = newPos;
-          }
-
-          if (millis() - prevTime > debounce) {
-            if (BUTTON_THREE == 0) {
-              current_index++;
-              my_name[current_index % 6] = letters[position];
-              tft.println(my_name); // TODO: check to see if this looks good
-              prevTime = millis();  
-           }
-        }    
-      }  
-    
-      // TODO: Enroll your fingerprint and press button three to end it
-      while(BUTTON_THREE == 1) {
-        fps.SetLED(true);
-        int enrollid = 0;
-        bool usedid = true;
-        while (usedid == true)
-        {
-          usedid = fps.CheckEnrolled(enrollid);
-          if (usedid==true) enrollid++;
+    tft.println(F("Add user! First enter your name with the rotary encoder. Press button two when finished."));
+    current_index = 0;
+    // Until button two is pressed, keep changing your name
+    while(BUTTON_TWO == 1) {
+      unsigned long newPos = abs(rotary.read() % 26);
+      if (newPos != position && newPos >= 0) {
+        position = newPos;
+      }
+      if (millis() - prevTime > debounce) {
+        if (BUTTON_THREE == 0) {
+          current_index++;
+          my_name[current_index % 6] = letters[position];
+          tft.println(my_name);
+          prevTime = millis();
         }
-        fps.EnrollStart(enrollid);
+      }
+    }
 
-        // enroll
-        tft.println(F("Press finger to Enroll #"));
-        tft.println(enrollid);
-        while(fps.IsPressFinger() == false) delay(100);
-        bool bret = fps.CaptureFinger(true);
-        int iret = 0;
-        if (bret != false)
-        {
-          tft.println("Remove finger");
+    // Now we have a name to add the user with. We also need the fingerprint
+
+    tft.println(F("Now it's time to enroll your fingerprint. Press button one at the end of the process."));
+    fps.SetLED(true);
+    int enrollid = 0;
+    bool usedid = true;
+    while (usedid == true)
+     {
+       usedid = fps.CheckEnrolled(enrollid);
+       if (usedid==true) enrollid++;
+     }
+     fps.EnrollStart(enrollid);
+     // enroll
+     tft.println(F("Press finger to Enroll #"));
+     tft.println(enrollid);
+     while(fps.IsPressFinger() == false) delay(100);
+     bool bret = fps.CaptureFinger(true);
+     int iret = 0;
+     if (bret != false) {
+          tft.println(F("Remove finger"));
           fps.Enroll1(); 
           while(fps.IsPressFinger() == true) delay(100);
           tft.println(F("Press same finger again"));
           while(fps.IsPressFinger() == false) delay(100);
           bret = fps.CaptureFinger(true);
-          if (bret != false)
-          {
+          if (bret != false) {
             tft.println(F("Remove finger"));
             fps.Enroll2();
             while(fps.IsPressFinger() == true) delay(100);
-            tft.println("Press same finger yet again");
+            tft.println(F("Press same finger yet again"));
             while(fps.IsPressFinger() == false) delay(100);
             bret = fps.CaptureFinger(true);
-            if (bret != false)
-            {
+            if (bret != false) {
               tft.println(F("Remove finger"));
               iret = fps.Enroll3();
-              if (iret == 0)
-              {
+              if (iret == 0) {
                 tft.println(F("Enrolling Successful"));
               }
-            else
-            {
-          tft.print(F("Enrolling Failed with error code:"));
+            else {
+          tft.print(F("Enrolling Failed"));
           system_state = Welcome;
           break;
         }
       }
-      else Serial.println(F("Failed to capture third finger"));
-    }
-    else Serial.println(F("Failed to capture second finger"));
-  }
-  else Serial.println(F("Failed to capture first finger"));
-        
+      else tft.println(F("Failed to capture third finger"));
       }
+      else tft.println(F("Failed to capture second finger"));
+      }
+      else tft.println(F("Failed to capture first finger"));
 
-    // Press button one to get out of here
+      //TODO: addUser(my_name, enrollid);
+        
+  while (1) {
     if (BUTTON_ONE == 0)
     {
       system_state = Main_Menu;
@@ -336,11 +336,26 @@ void loop()
   }
   case Remove_User:
   {
-    tft.println(F("Scroll through this list of users and press down on the rotary encoder."));
-    while (1)
-    {
-      // TODO: add rotary code to actually scroll through the users
+    tft.println(F("Scroll through this list of users and press down on button two when you've found who you want."));
 
+    while(BUTTON_TWO == 1) {
+      unsigned long newPos = abs(rotary.read() % (MAX_USERS - 1));
+      if (newPos != position && newPos >= 0) {
+        position = newPos;
+      }
+      if (millis() - prevTime > debounce) {
+        if (BUTTON_THREE == 0) {
+          user_to_remove = UserList[position].UserId;
+          tft.println(user_to_remove);
+          prevTime = millis();
+        }
+      }
+    }
+    
+    //removeUser(user_to_remove);
+
+    while (1) //now scram
+    {
       if (BUTTON_THREE == 0)
       {
         buzz();
@@ -352,11 +367,26 @@ void loop()
   }
   case Elevate_User:
   {
-    tft.println(F("Scroll through this list of users and press down on the rotary encoder."));
+    tft.println(F("Scroll through this list of users and press down on button two when you've found who you want."));
+
+    while(BUTTON_TWO == 1) {
+      unsigned long newPos = abs(rotary.read() % (MAX_USERS - 1));
+      if (newPos != position && newPos >= 0) {
+        position = newPos;
+      }
+      if (millis() - prevTime > debounce) {
+        if (BUTTON_THREE == 0) {
+          user_to_elevate = UserList[position].UserId;
+          tft.println(user_to_elevate);
+          prevTime = millis();
+        }
+      }
+    }
+
+    //elevateUser(user_to_elevate);
+    
     while (1)
     {
-      // TODO: add rotary code to actually scroll through the users
-
       if (BUTTON_THREE == 0)
       {
         buzz();
@@ -409,10 +439,35 @@ void loop()
   }
   case Supply_Mode:
   {
-    tft.println(F("Supply mode time"));
+    tft.println(F("Supply mode time. Press button two after you picked a container number"));
+    //There's no check to make sure that container number is valid but to be honest that might be fine for now
 
-    //TODO: add micro code to select container, open lid (waiting for b1)
-    //select scrip, then add it, then go back
+    while(BUTTON_TWO == 1) {
+      unsigned long newPos = abs(rotary.read() % 3);
+      if (newPos != position && newPos >= 0) {
+        position = newPos;
+      }
+      if (millis() - prevTime > debounce) {
+        if (BUTTON_THREE == 0) {
+          container_picked = position;
+          tft.println(container_picked);
+          prevTime = millis();
+        }
+      }
+    }
+
+    // TODO: I'm missing stuff after you pick the container number. But we'll talk about it
+
+    openLid();
+    tft.println(F("Put your meds in now... then press button two to close it"));
+
+    // Do nothing while button two hasn't been pressed
+    while(BUTTON_TWO == 1) {
+      
+    }
+    
+    closeLid();
+    tft.println(F("Press button two to go back to the main menu"));
     while (1)
     {
       if (BUTTON_TWO == 0)
@@ -427,16 +482,15 @@ void loop()
   case Get_Meds:
   {
     tft.println(F("Get meds!"));
-    // Todo: move this stuff inside the while, otherwise it's going to happen a million times
 
-    // TODO: if meds available, dispense and show remaining count
-    // else display time for next dispensing
     bool dispensed = false;
     for (uint8_t i = 0; i < 3; i++)
     {
       if (availableMeds[i] & (1 << currentUser->UserId))
       {
         dispenseMedication(i);
+        // TODO: tidy up... we probably want to decrease the supply
+        tft.println(F("You have some left I guess"));
         dispensed = true;
       }
     }
@@ -462,6 +516,8 @@ void loop()
     {
       // TODO: micro-code to capture all of the inputs, buttons 2 and 3
 
+      //addPrescription(the, things)
+
       if (BUTTON_ONE == 0)
       {
         system_state = Main_Menu;
@@ -475,8 +531,8 @@ void loop()
 
 void buzz()
 {
-  // TODO: make a tone
-  tft.println(F("BEEP"));
+  // AVR pin: 28; Arduino pin: A5
+  tone(A5, 1000, 1000);
 }
 
 void showWelcomeScreen()
@@ -586,7 +642,7 @@ User *getUserFromPrint(fingerIdType fingerprint)
   return nullptr;
 }
 
-userIdType addUser(char *name, fingerIdType fingerprint)
+userIdType addUser(char name[6], fingerIdType fingerprint)
 {
   if (numUsers == MAX_USERS)
   {
@@ -694,4 +750,34 @@ void closeLid()
   _delay_us(10); // Delays are all in microseconds, so this should be plenty.
   SOLENOID_REVERSE_PORT &= ~(1 << SOLENOID_REVERSE_pin);
   _delay_us(10);
+}
+
+void initShiftReg()
+{
+    PL_BAR_PORT |= (1 << PL_BAR_pin);
+}
+
+void readShiftReg(int &reg)
+{
+    // Note: This is doing a serial load to input registers, then shift registers
+    // There's also the option to do a parallel load of both at the same time. I'm not sure which to use.
+    STCP_PORT |= (1 << STCP_pin);
+    _delay_us(PULSE_WIDTH);
+    STCP_PORT &= ~(1 << STCP_pin);
+    _delay_us(WAIT_TIME);
+    PL_BAR_PIN &= ~(1 << PL_BAR_pin);
+    _delay_us(PULSE_WIDTH);
+    PL_BAR_PORT |= (1 << PL_BAR_pin);
+    reg = 0;
+    for (int i = 7; i >= 0; i++)
+    {
+        SHCP_PORT |= (1 << SHCP_pin);
+        _delay_us(SETTLE_TIME);
+        if ((SHIFTREG_Q_PIN & 1 << SHIFTREG_Q_pin) != 0)
+        {
+            reg |= (1 << i);
+        }
+        SHCP_PORT &= ~(1 << SHCP_pin);
+        _delay_us(SETTLE_TIME);
+    }
 }
