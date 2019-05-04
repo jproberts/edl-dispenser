@@ -35,17 +35,17 @@ Me:
 #define TFT_CS 10
 
 /* ROTARY */
-#define debounce 200 // in milliseconds
 #define ENCODER_DO_NOT_USE_INTERRUPTS
-char my_name[6] = {'s', 'a', 'r', 'a', 'h', '\0'};
-char letters[] = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h',
-  'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't',
-  'u', 'v', 'w', 'x', 'y', 'z'};
-uint8_t current_index, user_to_remove, user_to_elevate, container_picked;
-unsigned long prevTime, position;
 // AVR ROTA: 23; Arduino ROTA: A0
 // AVR ROTB: 24; Arduino ROTB: A1
 Encoder rotary(A0, A1);
+char my_name[] = {' ', ' ', ' ', ' ', ' ', '\0'};
+char meds_name[] = {' ', ' ', ' ', ' ', ' ', '\0'};
+char letters[] = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h',
+  'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't',
+  'u', 'v', 'w', 'x', 'y', 'z', '\0'};
+uint8_t name_index, rotary_selection;
+unsigned long prevTime, newPos, position;
 
 // Use hardware SPI (on Uno, #13, #12, #11) and the above for CS/DC
 Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC);
@@ -141,7 +141,7 @@ void loop()
   tft.setTextColor(ILI9341_WHITE);
   tft.setTextSize(2);
   tft.println();
-  readShiftReg(shiftReg); 
+  readShiftReg(shiftReg); // TODO: determine if we need a loop
   switch (system_state)
   {
   case Welcome:
@@ -182,25 +182,24 @@ void loop()
   }
   case Add_User:
   {
-    tft.println(F("Add user! First enter your name with the rotary encoder. Press button two when finished."));
-    current_index = 0;
-    // Until button two is pressed, keep changing your name
+    tft.println(F("First enter your name with the rotary encoder. Press button two when finished."));
+    name_index = 0;
     while(BUTTON_TWO == 1) {
-      unsigned long newPos = abs(rotary.read() % 26);
+      newPos = abs(rotary.read() % 26);
       if (newPos != position && newPos >= 0) {
         position = newPos;
+        tft.println(letters[position]);
       }
-      if (millis() - prevTime > debounce) {
+      if (millis() - prevTime > 200) {
         if (BUTTON_THREE == 0) {
-          current_index++;
-          my_name[current_index % 6] = letters[position];
+          my_name[name_index % 6] = letters[position];
+          name_index++;
+          tft.print(F("Current name: "));
           tft.println(my_name);
           prevTime = millis();
         }
       }
     }
-
-    // Now we have a name to add the user with. We also need the fingerprint
 
     tft.println(F("Now it's time to enroll your fingerprint. Press button one at the end of the process."));
     fps.SetLED(true);
@@ -349,24 +348,26 @@ void loop()
   }
   case Remove_User:
   {
-    tft.println(F("Scroll through this list of users and press down on button two when you've found who you want."));
+    tft.println(F("Press down on button two when you've found who you want."));
 
     while(BUTTON_TWO == 1) {
-      unsigned long newPos = abs(rotary.read() % numUsers);
+      newPos = abs(rotary.read() % numUsers);
       if (newPos != position && newPos >= 0) {
         position = newPos;
+        // Print the user at that position
+        tft.println(UserList[position].Name);
       }
-      if (millis() - prevTime > debounce) {
+      if (millis() - prevTime > 200) {
         if (BUTTON_THREE == 0) {
-          user_to_remove = UserList[position].UserId;
-          // TODO; userId = enrollId
-          tft.println(UserList[position].Name);
+          // Keep track of the user ID
+          rotary_selection = UserList[position].UserId;
+          tft.println(F("Selected."));
           prevTime = millis();
         }
       }
     }
-    
-    //removeUser(user_to_remove);
+    // TODO: uncomment once James fixes that
+    //removeUser(rotary_selection);
 
     while (1) //now scram
     {
@@ -381,23 +382,26 @@ void loop()
   }
   case Elevate_User:
   {
-    tft.println(F("Scroll through this list of users and press down on button two when you've found who you want."));
+    tft.println(F("Press down on button two when you've found who you want."));
 
     while(BUTTON_TWO == 1) {
-      unsigned long newPos = abs(rotary.read() % (MAX_USERS - 1));
+      newPos = abs(rotary.read() % numUsers);
       if (newPos != position && newPos >= 0) {
         position = newPos;
+        // Print the user at that position
+        tft.println(UserList[position].Name);
       }
-      if (millis() - prevTime > debounce) {
+      if (millis() - prevTime > 200) {
         if (BUTTON_THREE == 0) {
-          user_to_elevate = UserList[position].UserId;
-          tft.println(user_to_elevate);
+          // Keep track of the user ID
+          rotary_selection = UserList[position].UserId;
+          tft.println(F("Selected."));
           prevTime = millis();
         }
       }
     }
-
-    //elevateUser(user_to_elevate);
+    // TODO: uncomment once James fixes that
+    //elevateUser(rotary_selection);
     
     while (1)
     {
@@ -460,11 +464,12 @@ void loop()
       unsigned long newPos = abs(rotary.read() % 3);
       if (newPos != position && newPos >= 0) {
         position = newPos;
+        tft.println(position);
       }
-      if (millis() - prevTime > debounce) {
+      if (millis() - prevTime > 200) {
         if (BUTTON_THREE == 0) {
-          container_picked = position;
-          tft.println(container_picked);
+          rotary_selection = position;
+          tft.println(F("Selected."));
           prevTime = millis();
         }
       }
@@ -487,7 +492,26 @@ void loop()
 
     // TODO: select prescription. Cycle through medicationlist and pick num meds
     // This is going to be a rotary thing
-    
+    tft.println(F("Now select your prescription. Press button one when you picked it."));
+
+    while(BUTTON_ONE == 1) {
+      newPos = abs(rotary.read() % numMeds);
+      if (newPos != position && newPos >= 0) {
+        position = newPos;
+        // Print the medication at that position
+        tft.println(MedicationList[position].Name);
+      }
+      if (millis() - prevTime > 200) {
+        if (BUTTON_THREE == 0) {
+          rotary_selection = MedicationList[position].UniqueId;
+          tft.println(F("Selected."));
+          prevTime = millis();
+        }
+      }
+    }
+
+    // TODO: processing on that selection
+
     tft.println(F("Press button two to go back to the main menu"));
     while (1)
     {
@@ -519,7 +543,6 @@ void loop()
     }
     while (1)
     {
-      // go back to main menu after all that stuff happens
       if (BUTTON_ONE == 0)
       {
         system_state = Main_Menu;
@@ -530,16 +553,58 @@ void loop()
   }
   case Add_Scrips:
   {
-    tft.println(F("Add scrips! Follow the instructions"));
+    // Make a new medication object
+
+
+    
+    tft.println(F("First enter the medication name with the rotary encoder. Press button two when finished."));
+    name_index = 0;
+    while(BUTTON_TWO == 1) {
+      newPos = abs(rotary.read() % 26);
+      if (newPos != position && newPos >= 0) {
+        position = newPos;
+        tft.println(letters[position]);
+      }
+      if (millis() - prevTime > 200) {
+        if (BUTTON_THREE == 0) {
+          meds_name[name_index % 6] = letters[position];
+          name_index++;
+          tft.print(F("Current name: "));
+          tft.println(meds_name);
+          prevTime = millis();
+        }
+      }
+    }
+
+    // Add that name to the medication object
+
+    // Now use the rotary to get the hours and minutes, I think we should do this as a 4 digit number but it's painful
+    // so I'm leaving this kind of blank until we talk
+
+    // Add that to the medication object (not sure how you wants this b/c idk how to format it)
+    
+    // Then use the rotary to get the supply, up to 15.
+    while(BUTTON_TWO == 1) {
+      unsigned long newPos = abs(rotary.read() % 15);
+      if (newPos != position && newPos >= 0) {
+        position = newPos;
+        tft.println(position);
+      }
+      if (millis() - prevTime > 200) {
+        if (BUTTON_THREE == 0) {
+          rotary_selection = position;
+          tft.println(F("Selected."));
+          prevTime = millis();
+        }
+      }
+    }
+
+    // Add supply to the medication object
+
+    // Then add this medication to the list @ numMeds
+    numMeds++; 
     while (1)
     {
-      // make a new medication object
-      // name
-      // frequency
-      // timeofday
-      // supply
-      // then add it to the list (nummeds, then increase that)
-
       if (BUTTON_ONE == 0)
       {
         system_state = Main_Menu;
