@@ -55,7 +55,6 @@ Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC);
 #define BUTTON_ONE (readShiftReg()) && shiftReg &(1 << 4)
 #define BUTTON_TWO (readShiftReg()) && shiftReg &(1 << 5)
 
-// TODO: can we keep it like this or should we do the Arduino equivalent here
 #define BUTTON_THREE (ROT_SWITCH_PIN & (1 << ROT_SWITCH_pin))
 
 /* SYSTEM */
@@ -142,7 +141,7 @@ void loop()
   tft.setTextColor(ILI9341_WHITE);
   tft.setTextSize(2);
   tft.println();
-  readShiftReg(); // TODO: determine if we need a loop
+  readShiftReg();
   switch (system_state)
   {
   case Welcome:
@@ -395,8 +394,7 @@ void loop()
         }
       }
     }
-    // TODO: uncomment once James fixes that
-    //removeUser(rotary_selection);
+    removeUser(rotary_selection);
 
     while (1) //now scram
     {
@@ -433,8 +431,7 @@ void loop()
         }
       }
     }
-    // TODO: uncomment once James fixes that
-    //elevateUser(rotary_selection);
+    elevateUser(rotary_selection);
 
     while (1)
     {
@@ -522,7 +519,6 @@ void loop()
       }
     }
 
-    // TODO: I'm missing stuff after you pick the container number. But we'll talk about it
     for (int i = 0; i < numMeds; i++)
     {
       if (MedicationList[i].ContainerNum == rotary_selection)
@@ -549,10 +545,6 @@ void loop()
 
     closeLid();
 
-    // TODO: select prescription. Cycle through medicationlist and pick num meds
-    // This is going to be a rotary thing
-    // Once you select the medication, run this line to enable the timer again. (It's not a very good system, but it should work for now.)
-    // ttimer.enable(meds->TimerId);
     tft.println(F("Now select your prescription. Press button one when you picked it."));
 
     while (BUTTON_ONE == 1)
@@ -575,7 +567,7 @@ void loop()
       }
     }
 
-    // TODO: processing on that selection
+    ttimer.enable(MedicationList[position]->TimerId); // Enable timer for medication.
 
     tft.println(F("Press button two to go back to the main menu"));
     while (1)
