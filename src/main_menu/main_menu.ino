@@ -567,7 +567,7 @@ void loop()
       }
     }
 
-    ttimer.enable(MedicationList[position]->TimerId); // Enable timer for medication.
+    ttimer.enable(MedicationList[position].TimerId); // Enable timer for medication.
 
     tft.println(F("Press button two to go back to the main menu"));
     while (1)
