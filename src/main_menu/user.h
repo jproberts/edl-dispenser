@@ -14,13 +14,13 @@ class User
 	static int nextId;
 	char *Name;
 	userIdType UserId;
-	fingerIdType Fingerprint;
+	int enrollId;
 	Medication *Prescriptions;
 	int prescriptionCount;
 	bool Trusted;
 
-	User(char *name, fingerIdType print);
-	bool elevateTrust(User *admin);
+	User(char *name, int enrollId);
+	void elevateTrust();
 };
 
 #endif

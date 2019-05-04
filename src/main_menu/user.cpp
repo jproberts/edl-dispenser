@@ -1,17 +1,13 @@
 ﻿#include "user.h"
 
-User::User(char *name, fingerIdType fingerprint)
+User::User(char *name, int enrollId)
 {
 	this->Name = name;
-	this->UserId = User::nextId++;
-	this->Fingerprint = fingerprint;
+	this->UserId = enrollId;
 	this->Trusted = false;
 }
 
-bool User::elevateTrust(User *admin)
+void User::elevateTrust()
 {
-	if (admin->Trusted)
-		this->Trusted = true;
-
-	return this->Trusted;
+	this->Trusted = true;
 }

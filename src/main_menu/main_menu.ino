@@ -39,8 +39,8 @@ Me:
 #define ENCODER_DO_NOT_USE_INTERRUPTS
 char my_name[6] = {'s', 'a', 'r', 'a', 'h', '\0'};
 char letters[] = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h',
-  'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't',
-  'u', 'v', 'w', 'x', 'y', 'z'};
+                  'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't',
+                  'u', 'v', 'w', 'x', 'y', 'z'};
 uint8_t current_index, user_to_remove, user_to_elevate, container_picked;
 unsigned long prevTime, position;
 // AVR ROTA: 23; Arduino ROTA: A0
@@ -141,7 +141,7 @@ void loop()
   tft.setTextColor(ILI9341_WHITE);
   tft.setTextSize(2);
   tft.println();
-  readShiftReg(shiftReg); 
+  readShiftReg(shiftReg);
   switch (system_state)
   {
   case Welcome:
@@ -169,8 +169,13 @@ void loop()
       }
       if (BUTTON_TWO == 0)
       {
-        system_state = User_Menu_1;
-        break;
+        if (currentUser->Trusted)
+        {
+          system_state = User_Menu_1;
+          break;
+        }
+        else
+          buzz();
       }
       if (BUTTON_THREE == 0)
       {
@@ -185,13 +190,17 @@ void loop()
     tft.println(F("Add user! First enter your name with the rotary encoder. Press button two when finished."));
     current_index = 0;
     // Until button two is pressed, keep changing your name
-    while(BUTTON_TWO == 1) {
+    while (BUTTON_TWO == 1)
+    {
       unsigned long newPos = abs(rotary.read() % 26);
-      if (newPos != position && newPos >= 0) {
+      if (newPos != position && newPos >= 0)
+      {
         position = newPos;
       }
-      if (millis() - prevTime > debounce) {
-        if (BUTTON_THREE == 0) {
+      if (millis() - prevTime > debounce)
+      {
+        if (BUTTON_THREE == 0)
+        {
           current_index++;
           my_name[current_index % 6] = letters[position];
           tft.println(my_name);
@@ -207,58 +216,73 @@ void loop()
     int enrollid = 0;
     bool usedid = true;
     while (usedid == true)
-     {
-       usedid = fps.CheckEnrolled(enrollid);
-       if (usedid==true) enrollid++;
-     }
-     fps.EnrollStart(enrollid);
-     // enroll
-     tft.println(F("Press finger to Enroll #"));
-     tft.println(enrollid);
-     while(fps.IsPressFinger() == false) delay(100);
-     bool bret = fps.CaptureFinger(true);
-     int iret = 0;
-     if (bret != false) {
-          tft.println(F("Remove finger"));
-          fps.Enroll1(); 
-          while(fps.IsPressFinger() == true) delay(100);
-          tft.println(F("Press same finger again"));
-          while(fps.IsPressFinger() == false) delay(100);
-          bret = fps.CaptureFinger(true);
-          if (bret != false) {
-            tft.println(F("Remove finger"));
-            fps.Enroll2();
-            while(fps.IsPressFinger() == true) delay(100);
-            tft.println(F("Press same finger yet again"));
-            while(fps.IsPressFinger() == false) delay(100);
-            bret = fps.CaptureFinger(true);
-            if (bret != false) {
-              tft.println(F("Remove finger"));
-              iret = fps.Enroll3();
-              if (iret == 0) {
-                tft.println(F("Enrolling Successful"));
-              }
-            else {
-          tft.print(F("Enrolling Failed"));
-          system_state = Welcome;
-          break;
-        }
-      }
-      else tft.println(F("Failed to capture third finger"));
-      }
-      else tft.println(F("Failed to capture second finger"));
-      }
-      else tft.println(F("Failed to capture first finger"));
-
-     addUser(my_name, enrollid);
-        
-  while (1) {
-    if (BUTTON_ONE == 0)
     {
-      system_state = Main_Menu;
-      break;
-     }
-  }
+      usedid = fps.CheckEnrolled(enrollid);
+      if (usedid == true)
+        enrollid++;
+    }
+    fps.EnrollStart(enrollid);
+    // enroll
+    tft.println(F("Press finger to Enroll #"));
+    tft.println(enrollid);
+    while (fps.IsPressFinger() == false)
+      delay(100);
+    bool bret = fps.CaptureFinger(true);
+    int iret = 0;
+    if (bret != false)
+    {
+      tft.println(F("Remove finger"));
+      fps.Enroll1();
+      while (fps.IsPressFinger() == true)
+        delay(100);
+      tft.println(F("Press same finger again"));
+      while (fps.IsPressFinger() == false)
+        delay(100);
+      bret = fps.CaptureFinger(true);
+      if (bret != false)
+      {
+        tft.println(F("Remove finger"));
+        fps.Enroll2();
+        while (fps.IsPressFinger() == true)
+          delay(100);
+        tft.println(F("Press same finger yet again"));
+        while (fps.IsPressFinger() == false)
+          delay(100);
+        bret = fps.CaptureFinger(true);
+        if (bret != false)
+        {
+          tft.println(F("Remove finger"));
+          iret = fps.Enroll3();
+          if (iret == 0)
+          {
+            tft.println(F("Enrolling Successful"));
+          }
+          else
+          {
+            tft.print(F("Enrolling Failed"));
+            system_state = Welcome;
+            break;
+          }
+        }
+        else
+          tft.println(F("Failed to capture third finger"));
+      }
+      else
+        tft.println(F("Failed to capture second finger"));
+    }
+    else
+      tft.println(F("Failed to capture first finger"));
+
+    addUser(my_name, enrollid);
+
+    while (1)
+    {
+      if (BUTTON_ONE == 0)
+      {
+        system_state = Main_Menu;
+        break;
+      }
+    }
     break;
   }
   case User_Menu_1:
@@ -351,13 +375,17 @@ void loop()
   {
     tft.println(F("Scroll through this list of users and press down on button two when you've found who you want."));
 
-    while(BUTTON_TWO == 1) {
+    while (BUTTON_TWO == 1)
+    {
       unsigned long newPos = abs(rotary.read() % numUsers);
-      if (newPos != position && newPos >= 0) {
+      if (newPos != position && newPos >= 0)
+      {
         position = newPos;
       }
-      if (millis() - prevTime > debounce) {
-        if (BUTTON_THREE == 0) {
+      if (millis() - prevTime > debounce)
+      {
+        if (BUTTON_THREE == 0)
+        {
           user_to_remove = UserList[position].UserId;
           // TODO; userId = enrollId
           tft.println(UserList[position].Name);
@@ -365,7 +393,7 @@ void loop()
         }
       }
     }
-    
+
     //removeUser(user_to_remove);
 
     while (1) //now scram
@@ -383,13 +411,17 @@ void loop()
   {
     tft.println(F("Scroll through this list of users and press down on button two when you've found who you want."));
 
-    while(BUTTON_TWO == 1) {
+    while (BUTTON_TWO == 1)
+    {
       unsigned long newPos = abs(rotary.read() % (MAX_USERS - 1));
-      if (newPos != position && newPos >= 0) {
+      if (newPos != position && newPos >= 0)
+      {
         position = newPos;
       }
-      if (millis() - prevTime > debounce) {
-        if (BUTTON_THREE == 0) {
+      if (millis() - prevTime > debounce)
+      {
+        if (BUTTON_THREE == 0)
+        {
           user_to_elevate = UserList[position].UserId;
           tft.println(user_to_elevate);
           prevTime = millis();
@@ -398,7 +430,7 @@ void loop()
     }
 
     //elevateUser(user_to_elevate);
-    
+
     while (1)
     {
       if (BUTTON_THREE == 0)
@@ -422,8 +454,13 @@ void loop()
       }
       if (BUTTON_TWO == 0)
       {
-        system_state = Add_Scrips;
-        break;
+        if (currentUser->Trusted)
+        {
+          system_state = Add_Scrips;
+          break;
+        }
+        else
+          buzz();
       }
       if (BUTTON_THREE == 0)
       {
@@ -440,8 +477,13 @@ void loop()
     {
       if (BUTTON_ONE == 0)
       {
-        system_state = Supply_Mode;
-        break;
+        if (currentUser->Trusted)
+        {
+          system_state = Supply_Mode;
+          break;
+        }
+        else
+          buzz();
       }
       if (BUTTON_TWO == 0)
       {
@@ -456,13 +498,17 @@ void loop()
     tft.println(F("Supply mode time. Press button two after you picked a container number"));
     //There's no check to make sure that container number is valid but to be honest that might be fine for now
 
-    while(BUTTON_TWO == 1) {
+    while (BUTTON_TWO == 1)
+    {
       unsigned long newPos = abs(rotary.read() % 3);
-      if (newPos != position && newPos >= 0) {
+      if (newPos != position && newPos >= 0)
+      {
         position = newPos;
       }
-      if (millis() - prevTime > debounce) {
-        if (BUTTON_THREE == 0) {
+      if (millis() - prevTime > debounce)
+      {
+        if (BUTTON_THREE == 0)
+        {
           container_picked = position;
           tft.println(container_picked);
           prevTime = millis();
@@ -480,14 +526,15 @@ void loop()
     tft.println(F("Put your meds in now... then press button two to close it"));
 
     // Do nothing while button two hasn't been pressed
-    while(BUTTON_TWO == 1) {
+    while (BUTTON_TWO == 1)
+    {
     }
-    
+
     closeLid();
 
     // TODO: select prescription. Cycle through medicationlist and pick num meds
     // This is going to be a rotary thing
-    
+
     tft.println(F("Press button two to go back to the main menu"));
     while (1)
     {
@@ -642,7 +689,7 @@ void showMedsMenu2()
   _delay_ms(4000);
 }
 
-User *getUserFromId(userIdType userId)
+User *getUserFromId(int userId)
 {
   for (uint8_t i = 0; i < numUsers; i++)
   {
@@ -653,65 +700,47 @@ User *getUserFromId(userIdType userId)
   return nullptr;
 }
 
-User *getUserFromPrint(fingerIdType fingerprint)
-{
-  for (uint8_t i = 0; i < numUsers; i++)
-  {
-    User *user = UserList + i;
-    if (user->Fingerprint == fingerprint)
-      return user;
-  }
-  return nullptr;
-}
-
-userIdType addUser(char name[6], fingerIdType fingerprint)
+userIdType addUser(char name[6], int enrollId)
 {
   if (numUsers == MAX_USERS)
   {
     return -1;
   }
-  User newUser = User(name, fingerprint);
+  User newUser = User(name, enrollId);
   UserList[numUsers++] = (newUser);
   return newUser.UserId;
 }
 
-bool removeUser(uint8_t userId, fingerIdType fingerprint)
+bool removeUser(int userId)
 {
-  User *admin = getUserFromPrint(fingerprint);
-  if (admin == nullptr || !admin->Trusted)
-    return false;
-  else
+  bool swap = false;
+  for (uint8_t i = 0; i < numUsers; i++)
   {
-    bool swap = false;
-    for (uint8_t i = 0; i < numUsers; i++)
+    User *user = UserList + i;
+    if (user->UserId == userId)
     {
-      User *user = UserList + i;
-      if (user->Fingerprint == fingerprint)
-      {
-        swap = true;
-      }
-      if (swap)
-      {
-        UserList[i] = UserList[i + 1];
-      }
+      swap = true;
     }
     if (swap)
     {
-      numUsers--;
+      UserList[i] = UserList[i + 1];
     }
-    return swap;
   }
+  if (swap)
+  {
+    numUsers--;
+  }
+  return swap;
 }
 
-bool elevateUser(uint8_t userId, fingerIdType fingerprint)
+void elevateUser(int userId)
 {
-  User *admin = getUserFromPrint(fingerprint);
   User *user = getUserFromId(userId);
 
-  if (admin == nullptr || user == nullptr)
+  if (user == nullptr)
     return false;
   else
-    return user->elevateTrust(admin);
+    return user->elevateTrust();
 }
 
 bool addPrescription(User *user, Medication *meds)
@@ -778,30 +807,30 @@ void closeLid()
 
 void initShiftReg()
 {
-    PL_BAR_PORT |= (1 << PL_BAR_pin);
+  PL_BAR_PORT |= (1 << PL_BAR_pin);
 }
 
 void readShiftReg(uint8_t *reg)
 {
-    // Note: This is doing a serial load to input registers, then shift registers
-    // There's also the option to do a parallel load of both at the same time. I'm not sure which to use.
-    STCP_PORT |= (1 << STCP_pin);
-    _delay_us(PULSE_WIDTH);
-    STCP_PORT &= ~(1 << STCP_pin);
-    _delay_us(WAIT_TIME);
-    PL_BAR_PIN &= ~(1 << PL_BAR_pin);
-    _delay_us(PULSE_WIDTH);
-    PL_BAR_PORT |= (1 << PL_BAR_pin);
-    *reg = 0;
-    for (int i = 7; i >= 0; i++)
+  // Note: This is doing a serial load to input registers, then shift registers
+  // There's also the option to do a parallel load of both at the same time. I'm not sure which to use.
+  STCP_PORT |= (1 << STCP_pin);
+  _delay_us(PULSE_WIDTH);
+  STCP_PORT &= ~(1 << STCP_pin);
+  _delay_us(WAIT_TIME);
+  PL_BAR_PIN &= ~(1 << PL_BAR_pin);
+  _delay_us(PULSE_WIDTH);
+  PL_BAR_PORT |= (1 << PL_BAR_pin);
+  *reg = 0;
+  for (int i = 7; i >= 0; i++)
+  {
+    SHCP_PORT |= (1 << SHCP_pin);
+    _delay_us(SETTLE_TIME);
+    if ((SHIFTREG_Q_PIN & 1 << SHIFTREG_Q_pin) != 0)
     {
-        SHCP_PORT |= (1 << SHCP_pin);
-        _delay_us(SETTLE_TIME);
-        if ((SHIFTREG_Q_PIN & 1 << SHIFTREG_Q_pin) != 0)
-        {
-            *reg |= (1 << i);
-        }
-        SHCP_PORT &= ~(1 << SHCP_pin);
-        _delay_us(SETTLE_TIME);
+      *reg |= (1 << i);
     }
+    SHCP_PORT &= ~(1 << SHCP_pin);
+    _delay_us(SETTLE_TIME);
+  }
 }
