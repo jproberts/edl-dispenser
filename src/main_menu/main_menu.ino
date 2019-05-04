@@ -65,7 +65,7 @@ uint8_t numUsers;
 uint8_t numMeds;
 User *UserList;
 Medication *MedicationList;
-char availableMeds[3];
+uint8_t availableMeds[3];
 
 userIdType addUser(char name[6], fingerIdType fingerprint);
 bool removeUser(uint8_t userId, fingerIdType fingerprint);
@@ -517,6 +517,16 @@ void loop()
     }
 
     // TODO: I'm missing stuff after you pick the container number. But we'll talk about it
+    for (int i = 0; i < numMeds; i++)
+    {
+      if (MedicationList[i].ContainerNum == container_picked)
+      {
+        MedicationList[i].ContainerNum = -1;
+      }
+    }
+
+    availableMeds[container_picked] = 0;
+
     /* Loop through medication list to find if any medication is currently in the container.
      *  Turn container number to -1
      *  (?) Loop through timers and remove timer for removed medication
@@ -762,6 +772,9 @@ void revokeMeds(uint8_t id)
 
 void alertUser(Medication *meds)
 {
+  // Temporary fix. Need to look into timer to see if we can stop and restart based on id's.
+  if (meds->ContainerNum == -1)
+    return;
   Serial.print(meds->Name);
   Serial.println(F(" is ready."));
   for (uint8_t i = 0; i < numUsers; i++)
