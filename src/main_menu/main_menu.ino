@@ -52,8 +52,8 @@ unsigned long prevTime, newPos, position;
 Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC);
 
 /* SHIFT REGISTER */
-#define BUTTON_ONE shiftReg[4]
-#define BUTTON_TWO shiftReg[5]
+#define BUTTON_ONE (readShiftReg()) && shiftReg &(1 << 4)
+#define BUTTON_TWO (readShiftReg()) && shiftReg &(1 << 5)
 
 // TODO: can we keep it like this or should we do the Arduino equivalent here
 #define BUTTON_THREE (ROT_SWITCH_PIN & (1 << ROT_SWITCH_pin))
@@ -78,11 +78,11 @@ bool removePrescription(User *user, Medication *meds);
 void alertUser(Medication *meds);
 void createAlert(Medication *meds);
 void initShiftReg();
-void readShiftReg(uint8_t *reg);
+bool readShiftReg();
 
 SimpleTimer ttimer;
 
-uint8_t shiftReg[8];
+uint8_t shiftReg;
 /* shiftReg
   1: Hall1
   2: Hall2
@@ -142,7 +142,7 @@ void loop()
   tft.setTextColor(ILI9341_WHITE);
   tft.setTextSize(2);
   tft.println();
-  readShiftReg(shiftReg); // TODO: determine if we need a loop
+  readShiftReg(); // TODO: determine if we need a loop
   switch (system_state)
   {
   case Welcome:
@@ -902,7 +902,7 @@ void initShiftReg()
   PL_BAR_PORT |= (1 << PL_BAR_pin);
 }
 
-void readShiftReg(uint8_t *reg)
+bool readShiftReg()
 {
   // Note: This is doing a serial load to input registers, then shift registers
   // There's also the option to do a parallel load of both at the same time. I'm not sure which to use.
@@ -913,16 +913,17 @@ void readShiftReg(uint8_t *reg)
   PL_BAR_PIN &= ~(1 << PL_BAR_pin);
   _delay_us(PULSE_WIDTH);
   PL_BAR_PORT |= (1 << PL_BAR_pin);
-  *reg = 0;
+  shiftReg = 0;
   for (int i = 7; i >= 0; i++)
   {
     SHCP_PORT |= (1 << SHCP_pin);
     _delay_us(SETTLE_TIME);
     if ((SHIFTREG_Q_PIN & 1 << SHIFTREG_Q_pin) != 0)
     {
-      *reg |= (1 << i);
+      shiftReg |= (1 << i);
     }
     SHCP_PORT &= ~(1 << SHCP_pin);
     _delay_us(SETTLE_TIME);
   }
+  return true;
 }
