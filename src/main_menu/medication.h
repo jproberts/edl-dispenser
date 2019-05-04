@@ -11,6 +11,7 @@ class Medication
 	int Supply;
 	int UniqueId;
 	int ContainerNum;
+	int TimerId;
 
 	Medication() : Name("Vitamins"), Frequency(1000), TimeOfDay(5000), Supply(15), ContainerNum(0) {}
 	Medication(char const *name, int frequency, int timeofday) : Name(name), Frequency(frequency), TimeOfDay(timeofday) {}

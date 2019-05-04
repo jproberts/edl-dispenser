@@ -522,6 +522,7 @@ void loop()
       if (MedicationList[i].ContainerNum == container_picked)
       {
         MedicationList[i].ContainerNum = -1;
+        ttimer.disable(MedicationList[i].TimerId);
       }
     }
 
@@ -544,6 +545,8 @@ void loop()
 
     // TODO: select prescription. Cycle through medicationlist and pick num meds
     // This is going to be a rotary thing
+    // Once you select the medication, run this line to enable the timer again. (It's not a very good system, but it should work for now.)
+    // ttimer.enable(meds->TimerId);
 
     tft.println(F("Press button two to go back to the main menu"));
     while (1)
@@ -772,11 +775,10 @@ void revokeMeds(uint8_t id)
 
 void alertUser(Medication *meds)
 {
-  // Temporary fix. Need to look into timer to see if we can stop and restart based on id's.
-  if (meds->ContainerNum == -1)
-    return;
-  Serial.print(meds->Name);
-  Serial.println(F(" is ready."));
+  // if (meds->ContainerNum == -1) // Should never reach this state, but it's a brute force check if something went wrong.
+  //   return;
+  tft.print(meds->Name);
+  tft.println(F(" is ready."));
   for (uint8_t i = 0; i < numUsers; i++)
   {
     for (uint8_t j = 0; j < 3; j++)
@@ -792,7 +794,8 @@ void alertUser(Medication *meds)
 
 void createAlert(Medication *meds)
 {
-  ttimer.setTimer(meds->Frequency, alertUser, meds, 10);
+  int timerId = ttimer.setTimer(meds->Frequency, alertUser, meds, 10);
+  meds->TimerId = timerId;
 }
 
 void setupAlert(Medication *meds)
