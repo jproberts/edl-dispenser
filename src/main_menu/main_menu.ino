@@ -524,14 +524,14 @@ void loop()
     // TODO: I'm missing stuff after you pick the container number. But we'll talk about it
     for (int i = 0; i < numMeds; i++)
     {
-      if (MedicationList[i].ContainerNum == container_picked)
+      if (MedicationList[i].ContainerNum == rotary_selection)
       {
         MedicationList[i].ContainerNum = -1;
         ttimer.disable(MedicationList[i].TimerId);
       }
     }
 
-    availableMeds[container_picked] = 0;
+    availableMeds[rotary_selection] = 0;
 
     /* Loop through medication list to find if any medication is currently in the container.
      *  Turn container number to -1
