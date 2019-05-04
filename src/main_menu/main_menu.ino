@@ -38,6 +38,7 @@ Me:
 #define ENCODER_DO_NOT_USE_INTERRUPTS
 // AVR ROTA: 23; Arduino ROTA: A0
 // AVR ROTB: 24; Arduino ROTB: A1
+#define DEBOUNCE 200
 Encoder rotary(A0, A1);
 char my_name[] = {' ', ' ', ' ', ' ', ' ', '\0'};
 char meds_name[] = {' ', ' ', ' ', ' ', ' ', '\0'};
@@ -197,7 +198,7 @@ void loop()
         position = newPos;
         tft.println(letters[position]);
       }
-      if (millis() - prevTime > 200)
+      if (millis() - prevTime > DEBOUNCE)
       {
         if (BUTTON_THREE == 0)
         {
@@ -383,7 +384,7 @@ void loop()
         // Print the user at that position
         tft.println(UserList[position].Name);
       }
-      if (millis() - prevTime > 200)
+      if (millis() - prevTime > DEBOUNCE)
       {
         if (BUTTON_THREE == 0)
         {
@@ -421,7 +422,7 @@ void loop()
         // Print the user at that position
         tft.println(UserList[position].Name);
       }
-      if (millis() - prevTime > 200)
+      if (millis() - prevTime > DEBOUNCE)
       {
         if (BUTTON_THREE == 0)
         {
@@ -510,7 +511,7 @@ void loop()
         position = newPos;
         tft.println(position);
       }
-      if (millis() - prevTime > 200)
+      if (millis() - prevTime > DEBOUNCE)
       {
         if (BUTTON_THREE == 0)
         {
@@ -563,7 +564,7 @@ void loop()
         // Print the medication at that position
         tft.println(MedicationList[position].Name);
       }
-      if (millis() - prevTime > 200)
+      if (millis() - prevTime > DEBOUNCE)
       {
         if (BUTTON_THREE == 0)
         {
@@ -629,7 +630,7 @@ void loop()
         position = newPos;
         tft.println(letters[position]);
       }
-      if (millis() - prevTime > 200)
+      if (millis() - prevTime > DEBOUNCE)
       {
         if (BUTTON_THREE == 0)
         {
@@ -658,7 +659,7 @@ void loop()
         position = newPos;
         tft.println(position);
       }
-      if (millis() - prevTime > 200)
+      if (millis() - prevTime > DEBOUNCE)
       {
         if (BUTTON_THREE == 0)
         {
